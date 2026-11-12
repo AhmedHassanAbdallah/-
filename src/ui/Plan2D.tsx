@@ -340,7 +340,18 @@ export function Plan2D() {
   // ---- actions ----
   const rotateSelected = () => {
     if (!selected) return;
-    updateItem(selected.id, { rot: (selected.rot + 90) % 360 });
+    const rot = (selected.rot + 90) % 360;
+    // a unit turned next to a wall would poke through it: slide it back inside the room
+    let { x, y } = selected;
+    const inside = () => itemCorners({ ...selected, x, y, rot }).every((c) => pointInPolygon(c, room.points));
+    for (let k = 0; k < 60 && !inside(); k++) {
+      const dx = b.cx - x;
+      const dy = b.cy - y;
+      const l = Math.hypot(dx, dy) || 1;
+      x += (dx / l) * 4;
+      y += (dy / l) * 4;
+    }
+    updateItem(selected.id, { rot, x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 });
   };
 
   const freeSpotOnWall = (width: number): { wall: number; offset: number } => {
