@@ -20,3 +20,4 @@ android/app/src/main/assets/capacitor.plugins.json
 android/capacitor-cordova-android-plugins/
 *.keystore
 *.jks
+!android/app/debug.keystore

@@ -1,0 +1,77 @@
+name: Android APK
+
+# Builds the installable APK on every push and publishes it as the "latest-apk" release,
+# so the app can be downloaded straight to a phone without any local Android tooling.
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Install web dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Android SDK packages
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+
+      - name: Copy web app into the Android project
+        run: npx cap sync android
+
+      - name: Build APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Collect APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk KitchenStudio.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KitchenStudio-apk
+          path: KitchenStudio.apk
+
+      - name: Publish as the latest-apk release
+        if: github.ref_name == github.event.repository.default_branch || github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest-apk --cleanup-tag --yes || true
+          gh release create latest-apk KitchenStudio.apk \
+            --target "$GITHUB_SHA" \
+            --title "Kitchen Studio – أحدث نسخة APK" \
+            --notes "نسخة Android قابلة للتثبيت مبنية تلقائياً من آخر تحديث للكود (build #${GITHUB_RUN_NUMBER}).
+
+          طريقة التثبيت: نزّل الملف KitchenStudio.apk على هاتفك، افتحه، واسمح بالتثبيت من هذا المصدر.
+
+          Installable Android build generated automatically from the latest commit."

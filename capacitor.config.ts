@@ -7,6 +7,13 @@ const config: CapacitorConfig = {
   android: {
     backgroundColor: '#0f172a',
   },
+  plugins: {
+    // edge-to-edge: Capacitor exposes the system bar insets as --safe-area-inset-* CSS variables
+    SystemBars: {
+      insetsHandling: 'css',
+      style: 'DARK',
+    },
+  },
 };
 
 export default config;
