@@ -109,6 +109,10 @@ export class MatLib {
   get grey() {
     return this.get('grey', () => new THREE.MeshStandardMaterial({ color: '#8d9093', roughness: 0.5, metalness: 0.3 }));
   }
+  /** painted metal casing of appliances */
+  get casing() {
+    return this.get('casing', () => new THREE.MeshStandardMaterial({ color: '#b4b8bc', roughness: 0.5, metalness: 0.35, envMapIntensity: 1.6 }));
+  }
   get woodDoor() {
     return this.get('woodDoor', () => new THREE.MeshStandardMaterial({ map: getTexture('wood', '#b08a5e', '#8a6740'), roughness: 0.6 }));
   }
@@ -536,7 +540,7 @@ function buildAppliance(it: Item, ctx: BuildCtx, b: Batch) {
   const zf = d / 2;
   switch (it.appliance) {
     case 'fridge': {
-      b.box(m.darkSteel, w - 1, h - 3, d - 5, 0, 3 + (h - 3) / 2, -2.5);
+      b.box(m.casing, w - 1, h - 3, d - 5, 0, 3 + (h - 3) / 2, -2.5);
       b.box(m.black, w - 6, 3, d - 10, 0, 1.5, -2);
       const split = 3 + (h - 3) * 0.38;
       b.box(m.steel, w - 0.6, split - 3 - 0.4, 5, 0, 3 + (split - 3) / 2, zf - 2.5);
@@ -547,7 +551,7 @@ function buildAppliance(it: Item, ctx: BuildCtx, b: Batch) {
       break;
     }
     case 'fridge_sbs': {
-      b.box(m.darkSteel, w - 1, h - 3, d - 5, 0, 3 + (h - 3) / 2, -2.5);
+      b.box(m.casing, w - 1, h - 3, d - 5, 0, 3 + (h - 3) / 2, -2.5);
       b.box(m.black, w - 6, 3, d - 10, 0, 1.5, -2);
       const lw = w * 0.42;
       b.box(m.steel, lw - 0.5, h - 3.4, 5, -w / 2 + lw / 2 + 0.1, 3 + (h - 3) / 2, zf - 2.5);
@@ -596,7 +600,7 @@ function buildAppliance(it: Item, ctx: BuildCtx, b: Batch) {
     }
     case 'dishwasher': {
       const pl = Math.min(ctx.rules.plinthH / 10, 12);
-      b.box(m.darkSteel, w - 1, h - pl, d - 4, 0, pl + (h - pl) / 2, -2);
+      b.box(m.casing, w - 1, h - pl, d - 4, 0, pl + (h - pl) / 2, -2);
       b.box(m.plinth(ctx.fin), w, pl, 1.6, 0, pl / 2, zf - 7);
       b.box(m.steel, w - 0.6, h - pl - 12, 2, 0, pl + (h - pl - 12) / 2, zf - 1);
       b.box(m.blackGlass, w - 0.6, 11, 2, 0, h - 6, zf - 1);

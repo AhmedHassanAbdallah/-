@@ -49,7 +49,7 @@ interface State {
   removeItem: (id: string) => void;
   duplicateItem: (id: string) => void;
   setRoom: (fn: (r: Room) => Room, history?: boolean) => void;
-  setFinishes: (patch: Partial<Finishes>) => void;
+  setFinishes: (patch: Partial<Finishes>, history?: boolean) => void;
   setPrices: (patch: Partial<Prices>) => void;
   setRules: (patch: Partial<Rules>) => void;
   saveDefaults: () => Promise<void>;
@@ -92,7 +92,10 @@ export function normalizeProject(raw: Project): Project {
     columns: rr.columns ?? [],
     points: ensureClockwise(rr.points && rr.points.length >= 3 ? rr.points : rectRoom(400, 300)),
   };
-  p.items = (raw.items ?? []).map((it) => ({ ...it, opts: it.opts ?? {} }));
+  const ok = (v: unknown) => typeof v === 'number' && isFinite(v);
+  p.items = (raw.items ?? [])
+    .filter((it) => it && ok(it.x) && ok(it.y) && ok(it.w) && ok(it.d) && ok(it.h) && it.w > 0 && it.d > 0 && it.h > 0)
+    .map((it) => ({ ...it, rot: ok(it.rot) ? it.rot : 0, elev: ok(it.elev) ? it.elev : 0, opts: it.opts ?? {} }));
   return p;
 }
 
@@ -350,8 +353,8 @@ export const useStore = create<State>((set, get) => ({
   setRoom(fn, history = true) {
     get().commit((p) => ({ ...p, room: fn(p.room) }), history);
   },
-  setFinishes(patch) {
-    get().commit((p) => ({ ...p, finishes: { ...p.finishes, ...patch } }));
+  setFinishes(patch, history = true) {
+    get().commit((p) => ({ ...p, finishes: { ...p.finishes, ...patch } }), history);
   },
   setPrices(patch) {
     get().commit((p) => ({ ...p, prices: { ...p.prices, ...patch } }), false);

@@ -109,23 +109,25 @@ export function ItemProps(props: { id: string; tag?: string; onClose: () => void
                   </option>
                 ))}
               </select>
-              {(s.kind === 'door' || s.kind === 'glass') && (
-                <select style={{ flex: 0.9 }} value={s.n ?? 1} onChange={(e) => setSection(i, { n: Number(e.target.value) })} aria-label={L('عدد الضلف', 'Leaves')}>
+              {s.kind === 'door' || s.kind === 'glass' ? (
+                <select value={s.n ?? 1} onChange={(e) => setSection(i, { n: Number(e.target.value) })} aria-label={L('عدد الضلف', 'Leaves')} style={{ direction: 'ltr' }}>
                   {[1, 2, 3, 4].map((n) => (
                     <option key={n} value={n}>
-                      {n} {L('ضلفة', 'leaf')}
+                      ×{n}
                     </option>
                   ))}
                 </select>
+              ) : (
+                <span />
               )}
               <NumField value={s.h} min={0} max={250} onChange={(h) => setSection(i, { h })} stepper={false} unit={s.h > 0 ? L('سم', 'cm') : L('تلقائي', 'auto')} />
-              <button className="iconbtn" style={{ width: 30 }} onClick={() => moveSection(i, -1)} disabled={i === 0} aria-label="up">
+              <button className="iconbtn" onClick={() => moveSection(i, -1)} disabled={i === 0} aria-label="up">
                 <ArrowUp size={16} />
               </button>
-              <button className="iconbtn" style={{ width: 30 }} onClick={() => moveSection(i, 1)} disabled={i === sections.length - 1} aria-label="down">
+              <button className="iconbtn" onClick={() => moveSection(i, 1)} disabled={i === sections.length - 1} aria-label="down">
                 <ArrowDown size={16} />
               </button>
-              <button className="iconbtn" style={{ width: 30, color: 'var(--danger)' }} onClick={() => setOpts({ sections: sections.filter((_, k) => k !== i) })} disabled={sections.length <= 1} aria-label="remove">
+              <button className="iconbtn" style={{ color: 'var(--danger)' }} onClick={() => setOpts({ sections: sections.filter((_, k) => k !== i) })} disabled={sections.length <= 1} aria-label="remove">
                 <X size={16} />
               </button>
             </div>
@@ -134,7 +136,7 @@ export function ItemProps(props: { id: string; tag?: string; onClose: () => void
             <button className="btn soft sm" onClick={() => setOpts({ sections: [...sections, { kind: 'drawer', h: 0 }] })}>
               <Plus size={16} /> {L('إضافة قسم', 'Add section')}
             </button>
-            <span className="small muted grow">{L('الارتفاع 0 = يتوزع تلقائياً', 'Height 0 = auto')}</span>
+            <span className="small muted grow">{L('×2 = عدد الضلف · ارتفاع 0 = يتوزع تلقائياً', '×2 = door leaves · height 0 = auto')}</span>
           </div>
           <div className="grid2" style={{ marginTop: 12 }}>
             <NumField label={L('عدد الأرفف المتحركة', 'Adjustable shelves')} value={it.opts.shelves ?? 0} min={0} max={8} onChange={(shelves) => setOpts({ shelves })} />

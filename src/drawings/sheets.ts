@@ -31,7 +31,6 @@ const CY1 = 191;
 // Frame
 // ---------------------------------------------------------------------------
 function frame(k: Kit, p: Project, spec: SheetSpec, index: number, total: number) {
-  k.rect(0, 0, PAGE_W, PAGE_H, { fill: '#ffffff', stroke: 'none' });
   k.rect(6, 6, PAGE_W - 12, PAGE_H - 12, { stroke: INK, lw: 0.4 });
   k.rect(6, 6, PAGE_W - 12, 11, { fill: '#0f172a', stroke: 'none' });
   const rtl = k.rtl;
@@ -532,6 +531,7 @@ function finishLabel(it: Item, p: Project): string {
 }
 
 interface CutRow {
+  order: number;
   material: string;
   name: string;
   L: number;
@@ -560,11 +560,11 @@ export function consolidatedCutList(p: Project, bom: Bom): CutRow[] {
       row.edge += part.edge * part.qty;
       if (!row.tags.includes(tag)) row.tags.push(tag);
     } else {
-      map.set(key, { material: matName(part), name: LT(part.name), L: part.L, W: part.W, T: part.T, qty: part.qty, edge: part.edge * part.qty, tags: [tag] });
+      const order = part.material === 'carcass' ? 0 : part.material === 'drawer' ? 1 : part.material === 'back' ? 2 : 3;
+      map.set(key, { order, material: matName(part), name: LT(part.name), L: part.L, W: part.W, T: part.T, qty: part.qty, edge: part.edge * part.qty, tags: [tag] });
     }
   }
-  const order = (m: string) => (m.startsWith(L('هيكل', 'Carcass')) ? 0 : m.startsWith(L('صندوق', 'Drawer')) ? 1 : m.startsWith(L('ظهر', 'HDF')) ? 2 : 3);
-  return [...map.values()].sort((a, b) => order(a.material) - order(b.material) || a.material.localeCompare(b.material) || b.L - a.L || b.W - a.W);
+  return [...map.values()].sort((a, b) => a.order - b.order || a.material.localeCompare(b.material) || b.L - a.L || b.W - a.W);
 }
 
 function chunk<T>(arr: T[], n: number): T[][] {
@@ -1008,30 +1008,16 @@ export function renderSheet(spec: SheetSpec, index: number, total: number, p: Pr
   const ctx = cv.getContext('2d')!;
   ctx.scale(pxPerMm, pxPerMm);
   const k = new Kit(ctx, getLang() === 'ar');
-  // content first so sheets can report their scale, then the frame on top of a clean margin
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, PAGE_W, PAGE_H);
+  // content first (clipped to the drawing area) so a sheet can report its scale to the title block
   ctx.save();
   ctx.beginPath();
   ctx.rect(6.2, 17, PAGE_W - 12.4, 178);
   ctx.clip();
   spec.draw(k);
   ctx.restore();
-  const content = ctx.getImageData(0, 0, cv.width, cv.height);
   frame(k, p, spec, index, total);
-  // put the drawing back inside the frame
-  const tmp = document.createElement('canvas');
-  tmp.width = cv.width;
-  tmp.height = cv.height;
-  tmp.getContext('2d')!.putImageData(content, 0, 0);
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  const sx = Math.round(6.4 * pxPerMm);
-  const sy = Math.round(17.2 * pxPerMm);
-  const sw = Math.round((PAGE_W - 12.8) * pxPerMm);
-  const sh = Math.round(177.6 * pxPerMm);
-  ctx.drawImage(tmp, sx, sy, sw, sh, sx, sy, sw, sh);
-  ctx.restore();
   return cv;
 }
 

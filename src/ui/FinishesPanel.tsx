@@ -258,7 +258,7 @@ export function FinishesPanel() {
                   max={1.5}
                   step={0.05}
                   value={fin.brightness}
-                  onChange={(e) => setFinishes({ brightness: Number(e.target.value) })}
+                  onChange={(e) => setFinishes({ brightness: Number(e.target.value) }, false)}
                   style={{ width: '100%', accentColor: 'var(--primary)', direction: 'ltr' }}
                 />
               </div>

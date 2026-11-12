@@ -356,8 +356,21 @@ export function Plan2D() {
   };
   const addUtility = (type: UtilityType) => {
     const prefer = roomSel?.kind === 'wall' ? walls[roomSel.index] : [...walls].sort((a, b) => b.len - a.len)[0];
-    const count = room.utilities.filter((u) => u.wall === prefer.i).length;
-    const ut = { id: uid(), type, wall: prefer.i, offset: Math.round(clamp(prefer.len / 2 + count * 25 - 25, 10, prefer.len - 10)), height: UTIL_META[type].height };
+    // keep clear of doors and of the points already on this wall
+    const blocked = [
+      ...room.openings.filter((o) => o.wall === prefer.i && o.type === 'door').map((o) => ({ a: o.offset - 8, b: o.offset + o.width + 8 })),
+      ...room.utilities.filter((u) => u.wall === prefer.i).map((u) => ({ a: u.offset - 14, b: u.offset + 14 })),
+    ];
+    let offset = prefer.len / 2;
+    for (let k = 0; k < 80; k++) {
+      const c = prefer.len / 2 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 12;
+      if (c < 10 || c > prefer.len - 10) continue;
+      if (!blocked.some((bl) => c > bl.a && c < bl.b)) {
+        offset = c;
+        break;
+      }
+    }
+    const ut = { id: uid(), type, wall: prefer.i, offset: Math.round(offset), height: UTIL_META[type].height };
     setRoom((r) => ({ ...r, utilities: [...r.utilities, ut] }));
     setSheet(null);
     setRoomSel({ kind: 'utility', id: ut.id });

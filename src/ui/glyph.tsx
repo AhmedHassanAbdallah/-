@@ -67,7 +67,7 @@ export function ModuleGlyph({ def }: { def: ModuleDef }) {
   const item = { id: 'g', type: def.key, cat: def.cat, x: 0, y: 0, rot: 0, w: def.w, d: def.d, h: def.h, elev: def.elev, opts: def.opts } as Item;
   const lay = cabinetLayout(item, DEFAULT_RULES);
   els.push(<rect key="body" x={ox} y={Y(def.h)} width={w} height={lay.carcassH * scale} fill={BODY} stroke={INK} strokeWidth={sw} />);
-  if (lay.plinth > 0) els.push(<rect key="pl" x={ox + 2} y={Y(lay.plinth)} width={w - 4} height={lay.plinth * scale} fill="#9aa5b1" />);
+  if (lay.plinth > 0) els.push(<rect key="pl" x={ox + Math.min(2, w / 4)} y={Y(lay.plinth)} width={Math.max(0.5, w - 2 * Math.min(2, w / 4))} height={lay.plinth * scale} fill="#9aa5b1" />);
   lay.bands.forEach((b, i) => {
     const bx = X(lay.x0);
     const bw = (lay.x1 - lay.x0) * scale;

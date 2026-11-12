@@ -113,6 +113,8 @@ export class SceneManager {
     this.controls.maxDistance = 40;
     this.controls.zoomSpeed = 0.9;
     this.controls.addEventListener('change', () => (this.dirty = true));
+    // leaving an elevation view by orbiting ends its section cut
+    this.controls.addEventListener('start', () => this.setNear(0.05));
 
     if (!offscreen) {
       this.bindPointer(el);
@@ -553,9 +555,17 @@ export class SceneManager {
     this.controls.update();
   }
 
+  private setNear(near: number) {
+    if (this.camera.near === near) return;
+    this.camera.near = near;
+    this.camera.updateProjectionMatrix();
+    this.dirty = true;
+  }
+
   setView(preset: ViewPreset) {
     if (!this.project) return;
     if (this.mode === 'walk') this.setMode('orbit');
+    this.setNear(0.05);
     const c = this.roomCenter();
     const b = bounds(this.project.room.points);
     const size = Math.max(b.w, b.h) * CM;
@@ -566,9 +576,9 @@ export class SceneManager {
       return;
     }
     if (preset === 'top') {
-      const main = this.mainWall();
+      // same orientation as the 2D plan: first wall at the top of the screen
       this.controls.target.set(c.x, 0, c.z);
-      this.camera.position.set(c.x - main.n.x * 0.01, size * (aspect < 1 ? 2.6 : 1.7) + 1.5, c.z - main.n.y * 0.01 + 0.001);
+      this.camera.position.set(c.x, size * (aspect < 1 ? 2.6 : 1.7) + 1.5, c.z + 0.01);
     } else {
       const walls = getWalls(this.project.room);
       const withItems = walls.filter((w) => this.project!.items.some((it) => itemWall(it, [w])));
@@ -581,6 +591,8 @@ export class SceneManager {
       const need = Math.max((w.len * CM) / 2 / Math.tan(fovH / 2), (this.project.room.height * CM) / 2 / Math.tan(fovV / 2)) * 1.12 + 0.3;
       this.controls.target.set(mid.x, (this.project.room.height * CM) / 2 - 0.15, mid.z);
       this.camera.position.set(mid.x + w.n.x * need, (this.project.room.height * CM) / 2, mid.z + w.n.y * need);
+      // section cut: hide whatever stands between the viewer and this wall's units (e.g. the opposite run)
+      this.setNear(Math.max(0.05, need - 1.25));
     }
     this.controls.update();
     this.dirty = true;
@@ -601,18 +613,19 @@ export class SceneManager {
   setMode(mode: ViewMode) {
     if (mode === this.mode || !this.project) return;
     this.mode = mode;
+    this.setNear(0.05);
     if (mode === 'walk') {
       this.savedOrbit = { pos: this.camera.position.clone(), target: this.controls.target.clone() };
       this.controls.enabled = false;
       this.camera.fov = 68;
       this.camera.updateProjectionMatrix();
-      const start = this.findStandPoint();
+      // start on the open side of the kitchen, looking back at the cabinets
+      const open = this.openSide();
+      const start = this.findStandPoint(open);
       const eye = Math.min(160, this.project.room.height - 30) * CM;
       this.camera.position.set(start.x * CM, eye, start.y * CM);
-      const w = this.mainWall();
-      // face the main wall
-      this.yaw = Math.atan2(w.n.x, w.n.y);
-      this.pitch = -0.06;
+      this.yaw = Math.atan2(open.x, open.y);
+      this.pitch = -0.08;
       this.camera.rotation.order = 'YXZ';
       this.applyWalkCamera();
     } else {
@@ -655,10 +668,16 @@ export class SceneManager {
     return true;
   }
 
-  private findStandPoint(): { x: number; y: number } {
+  private findStandPoint(open: { x: number; y: number }): { x: number; y: number } {
     const p = this.project!;
     const b = bounds(p.room.points);
-    if (this.canStand(b.cx, b.cy)) return { x: b.cx, y: b.cy };
+    // walk out from the centre towards the open side and keep the farthest free spot
+    const reach = Math.max(b.w, b.h) / 2;
+    for (let t = reach; t >= 0; t -= 10) {
+      const x = b.cx + open.x * t;
+      const y = b.cy + open.y * t;
+      if (this.canStand(x, y) && distToPolygon({ x, y }, p.room.points) > 45) return { x, y };
+    }
     let best: { x: number; y: number } | null = null;
     let bestD = Infinity;
     for (let i = 1; i < 14; i++)

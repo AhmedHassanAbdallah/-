@@ -163,3 +163,25 @@ describe('bom', () => {
     expect(new Set(bom.tags.values()).size).toBe(items.length);
   });
 });
+
+describe('project normalisation', () => {
+  it('fills defaults and drops broken items from imported files', async () => {
+    const { normalizeProject } = await import('../src/store');
+    const raw = {
+      id: 'x', name: 'old', createdAt: 1, updatedAt: 1,
+      room: { points: [{ x: 0, y: 0 }, { x: 0, y: 300 }, { x: 400, y: 300 }, { x: 400, y: 0 }] },
+      items: [
+        { id: 'a', type: 'base_2d', cat: 'base', x: 40, y: 29, rot: 0, w: 80, d: 58, h: 82, elev: 0 },
+        { id: 'b', type: 'base_2d', cat: 'base', x: Number.NaN, y: 29, rot: 0, w: 80, d: 58, h: 82, elev: 0 },
+      ],
+    } as unknown as Project;
+    const p = normalizeProject(raw);
+    expect(signedArea(p.room.points)).toBeGreaterThan(0); // re-oriented clockwise
+    expect(p.room.height).toBe(280);
+    expect(p.items.map((i) => i.id)).toEqual(['a']);
+    expect(p.items[0].opts).toEqual({});
+    expect(p.finishes.countertop).toBe(DEFAULT_FINISHES.countertop);
+    expect(p.prices.front.mdf).toBe(DEFAULT_PRICES.front.mdf);
+    expect(computeBom(p).cost.total).toBeGreaterThan(0);
+  });
+});
