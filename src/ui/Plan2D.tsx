@@ -9,7 +9,9 @@ import {
   dot,
   findProblems,
   getWalls,
+  itemCorners,
   itemWall,
+  pointInPolygon,
   signedArea,
   snapItem,
   sub,
@@ -35,7 +37,7 @@ interface View {
 type Gesture =
   | { kind: 'pan'; sx: number; sy: number; tx0: number; ty0: number; moved: boolean }
   | { kind: 'pinch'; d0: number; s0: number; wx: number; wy: number }
-  | { kind: 'item'; id: string; start: Vec2; orig: Vec2; moved: boolean; sx: number; sy: number }
+  | { kind: 'item'; id: string; start: Vec2; orig: Vec2; moved: boolean; sx: number; sy: number; hits: string[]; wasSelected: boolean }
   | { kind: 'vertex'; index: number; moved: boolean; sx: number; sy: number }
   | { kind: 'opening'; id: string; grab: number; moved: boolean; sx: number; sy: number }
   | { kind: 'utility'; id: string; moved: boolean; sx: number; sy: number }
@@ -172,10 +174,16 @@ export function Plan2D() {
     const base = { moved: false, sx: e.clientX, sy: e.clientY };
     const v = viewRef.current;
     if (kind === 'item' && mode === 'units') {
-      const it = project.items.find((i) => i.id === id);
+      // wall units hang over base units, so several items can sit under one finger:
+      // keep working with the selected one if it is among them, otherwise take the top-most
+      const hits = [...upperItems].reverse().concat([...floorItems].reverse()).filter((i) => pointInPolygon(world, itemCorners(i))).map((i) => i.id);
+      if (!hits.includes(id)) hits.unshift(id);
+      const wasSelected = !!selectedId && hits.includes(selectedId);
+      const targetId = wasSelected ? selectedId! : hits[0];
+      const it = project.items.find((i) => i.id === targetId);
       if (it) {
-        select(id);
-        gesture.current = { kind: 'item', id, start: world, orig: { x: it.x, y: it.y }, ...base };
+        if (!wasSelected) select(targetId);
+        gesture.current = { kind: 'item', id: targetId, start: world, orig: { x: it.x, y: it.y }, hits, wasSelected, ...base };
         return;
       }
     }
@@ -321,6 +329,9 @@ export function Plan2D() {
     if (g.kind === 'pan') {
       select(null);
       setRoomSel(null);
+    } else if (g.kind === 'item') {
+      // tapping again on a stack of units moves the selection to the next one underneath
+      if (g.wasSelected && g.hits.length > 1) select(g.hits[(g.hits.indexOf(g.id) + 1) % g.hits.length]);
     } else if (g.kind === 'vertex') setRoomSel({ kind: 'vertex', index: g.index });
     else if (g.kind === 'wall') setRoomSel({ kind: 'wall', index: g.index });
     else if (g.kind === 'opening' || g.kind === 'utility' || g.kind === 'column') setRoomSel({ kind: g.kind, id: g.id });
