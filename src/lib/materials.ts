@@ -136,7 +136,7 @@ export const FLOORS: FloorFinish[] = [
   { id: 'fl-dark', name: { ar: 'بورسلين غامق', en: 'Dark porcelain' }, tex: 'tiles', color: '#4a4b4d', c2: '#35363a' },
   { id: 'fl-oak', name: { ar: 'باركيه بلوط', en: 'Oak parquet' }, tex: 'planks', color: '#c39a6b', c2: '#a37c4f' },
   { id: 'fl-walnut', name: { ar: 'باركيه جوز', en: 'Walnut parquet' }, tex: 'planks', color: '#7a553a', c2: '#5a3c27' },
-  { id: 'fl-marble', name: { ar: 'رخام فاتح', en: 'Light marble' }, tex: 'marble', color: '#ecebe6', c2: '#b0b1b3' },
+  { id: 'fl-marble', name: { ar: 'رخام فاتح', en: 'Light marble' }, tex: 'marble', color: '#ecebe6', c2: '#cfd0d1' },
   { id: 'fl-concrete', name: { ar: 'خرسانة مصقولة', en: 'Polished concrete' }, tex: 'concrete', color: '#a5a5a1', c2: '#8f8f8b' },
 ];
 export function floorFinish(id: string): FloorFinish {
@@ -249,6 +249,12 @@ export const STYLE_PRESETS: StylePreset[] = [
     name: { ar: 'مودرن أبيض', en: 'Modern white' },
     desc: { ar: 'أبيض لامع مع جرانيت أسود', en: 'Gloss white with black granite' },
     f: { baseDoor: 'acr-white', wallDoor: 'acr-white', tallDoor: 'acr-white', doorStyle: 'flat', countertop: 'gr-galaxy', handle: 'gola', handleColor: 'steel', plinth: 'pl-steel', wallColor: '#dcdfe1', floor: 'fl-grey', backsplash: 'bs-glass', carcass: 'c-white' },
+  },
+  {
+    id: 'greige-black',
+    name: { ar: 'بيج مودرن بأسود', en: 'Greige & black' },
+    desc: { ar: 'كشمير مطفي بخطوط سوداء ورخام معرّق', en: 'Matt cashmere, black lines, veined top' },
+    f: { baseDoor: 'mdf-cashmere', wallDoor: 'mdf-cashmere', tallDoor: 'mdf-cashmere', doorStyle: 'flat', countertop: 'qz-calacatta', handle: 'gola', handleColor: 'black', plinth: 'pl-black', wallColor: '#f3f1ec', floor: 'fl-marble', backsplash: 'bs-slab', carcass: 'c-oak' },
   },
   {
     id: 'navy-gold',

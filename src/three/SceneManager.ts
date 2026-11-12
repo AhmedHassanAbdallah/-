@@ -49,6 +49,11 @@ export class SceneManager {
   private ro: ResizeObserver | null = null;
   private disposed = false;
 
+  /** how far each unit's doors / drawers are open (0…1) and where they are heading */
+  private openNow = new Map<string, number>();
+  private openAll = false;
+  private openIds = new Set<string>();
+
   mode: ViewMode = 'orbit';
   private yaw = 0;
   private pitch = 0;
@@ -226,6 +231,7 @@ export class SceneManager {
     } else if (this.controls.update()) {
       this.dirty = true;
     }
+    this.stepOpen(dt);
     if (this.dirty) this.render();
   };
 
@@ -445,9 +451,11 @@ export class SceneManager {
     const walls = getWalls(p.room);
     const ledItems: Item[] = [];
     const insideItems: Item[] = [];
+    const pendants: Item[] = [];
     for (const it of p.items) {
       const onWall = !!itemWall(it, walls);
-      const g = buildItem(it, { rules: p.rules, fin: p.finishes, mats: this.mats, onWall });
+      const g = buildItem(it, { rules: p.rules, fin: p.finishes, mats: this.mats, onWall, open: this.openNow.get(it.id) ?? 0 });
+      if (it.appliance === 'pendant') pendants.push(it);
       this.itemsGroup.add(g);
       if ((it.opts.ledUnder ?? p.finishes.led) && it.cat === 'wall' && it.elev > 100) ledItems.push(it);
       if (it.opts.ledInside) insideItems.push(it);
@@ -465,6 +473,11 @@ export class SceneManager {
       light.position.set((it.x + fx * 4) * CM, (it.elev - 8) * CM, (it.y + fz * 4) * CM);
       this.ledGroup.add(light);
     }
+    for (const it of pendants.slice(0, 4)) {
+      const light = new THREE.PointLight(color, 1.6 * p.finishes.brightness, 3.2, 2);
+      light.position.set(it.x * CM, (it.elev - 6) * CM, it.y * CM);
+      this.ledGroup.add(light);
+    }
     // glow inside lit display units
     const stepIn = Math.max(1, Math.ceil(insideItems.length / 3));
     for (let i = 0; i < insideItems.length; i += stepIn) {
@@ -474,6 +487,47 @@ export class SceneManager {
       this.ledGroup.add(light);
     }
     this.updateSelection();
+  }
+
+  /** Open or close doors and drawers: everything, or only the listed units. */
+  setOpen(all: boolean, ids: string[]) {
+    this.openAll = all;
+    this.openIds = new Set(ids);
+    this.dirty = true;
+  }
+
+  private openTarget(id: string): number {
+    return this.openAll || this.openIds.has(id) ? 1 : 0;
+  }
+
+  /** Advance the opening animation; rebuilds only the units that are moving. */
+  private stepOpen(dt: number) {
+    const p = this.project;
+    if (!p) return;
+    let changed = false;
+    const walls = getWalls(p.room);
+    for (const it of p.items) {
+      if (it.cat === 'appliance') continue;
+      const cur = this.openNow.get(it.id) ?? 0;
+      const target = this.openTarget(it.id);
+      if (cur === target) continue;
+      const next = target > cur ? Math.min(target, cur + dt * 3.2) : Math.max(target, cur - dt * 3.2);
+      this.openNow.set(it.id, next);
+      const idx = this.itemsGroup.children.findIndex((c) => c.userData.itemId === it.id);
+      if (idx < 0) continue;
+      const old = this.itemsGroup.children[idx];
+      const g = buildItem(it, { rules: p.rules, fin: p.finishes, mats: this.mats, onWall: !!itemWall(it, walls), open: next });
+      disposeGroup(old);
+      this.itemsGroup.remove(old);
+      this.itemsGroup.add(g);
+      changed = true;
+    }
+    if (changed) {
+      this.selection = null;
+      this.updateSelection();
+      this.renderer.shadowMap.needsUpdate = true;
+      this.dirty = true;
+    }
   }
 
   private updateSelection() {

@@ -213,10 +213,27 @@ export function ItemProps(props: { id: string; tag?: string; onClose: () => void
               <div style={{ marginTop: 8 }}>
                 <ToggleRow label={L('سطح عمل فوق الوحدة', 'Countertop over the unit')} on={!!it.opts.countertop} onChange={(countertop) => setOpts({ countertop })} />
                 <ToggleRow label={L('جزيرة (ظهر وجوانب مشطبة)', 'Island (finished back & sides)')} on={!!it.opts.island} onChange={(island) => setOpts({ island })} />
+                {it.opts.countertop && (
+                  <div className="field" style={{ marginTop: 6 }}>
+                    <span className="lbl">{L('سطح شلال (ينزل للأرض)', 'Waterfall countertop end')}</span>
+                    <Seg
+                      block
+                      value={it.opts.waterfall ?? 'none'}
+                      onChange={(v) => setOpts({ waterfall: v === 'none' ? null : (v as 'L' | 'R' | 'both') })}
+                      options={[
+                        { id: 'none', label: L('لا', 'No') },
+                        { id: 'L', label: L('يسار', 'Left') },
+                        { id: 'R', label: L('يمين', 'Right') },
+                        { id: 'both', label: L('الجهتين', 'Both') },
+                      ]}
+                    />
+                  </div>
+                )}
               </div>
             </>
           )}
           {it.cat === 'wall' && <ToggleRow label={L('شفاط مدمج أسفل الوحدة', 'Built-in extractor')} on={!!it.opts.hood} onChange={(hood) => setOpts({ hood })} />}
+          <ToggleRow label={L('إطار أسود وجوانب زجاج (فاترينة)', 'Black frame & glass sides (vitrine)')} on={!!it.opts.vitrine} onChange={(vitrine) => setOpts({ vitrine })} />
           <div className="section-title" style={{ marginTop: 12 }}>{L('إضاءة LED بروفايل', 'LED profiles')}</div>
           <ToggleRow label={L('داخل الوحدة', 'Inside the unit')} hint={L('تظهر مع الضلف الزجاج أو الأقسام المفتوحة', 'Visible with glass doors or open sections')} on={!!it.opts.ledInside} onChange={(ledInside) => setOpts({ ledInside })} />
           {it.cat === 'wall' && <ToggleRow label={L('أسفل الوحدة', 'Under the unit')} on={it.opts.ledUnder ?? project.finishes.led} onChange={(ledUnder) => setOpts({ ledUnder })} />}

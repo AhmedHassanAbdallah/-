@@ -138,8 +138,9 @@ export function FinishesPanel() {
                 value={fin.doorStyle}
                 onChange={(doorStyle) => setFinishes({ doorStyle })}
                 options={[
-                  { id: 'flat', label: L('سادة (مودرن)', 'Flat (modern)') },
-                  { id: 'shaker', label: L('إطار شيكر (كلاسيك)', 'Shaker frame') },
+                  { id: 'flat', label: L('سادة', 'Flat') },
+                  { id: 'shaker', label: L('شيكر', 'Shaker') },
+                  { id: 'fluted', label: L('مضلّع', 'Fluted') },
                 ]}
               />
               <div className="section-title">{L('لون الهيكل الداخلي', 'Carcass colour')}</div>

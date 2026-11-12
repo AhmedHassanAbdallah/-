@@ -19,6 +19,7 @@ export const GROUPS: { id: string; cat: Category; name: LText }[] = [
   { id: 'wall', cat: 'wall', name: { ar: 'وحدات علوية', en: 'Wall units' } },
   { id: 'tall', cat: 'tall', name: { ar: 'أعمدة (دواليب طويلة)', en: 'Tall units' } },
   { id: 'appliance', cat: 'appliance', name: { ar: 'أجهزة', en: 'Appliances' } },
+  { id: 'deco', cat: 'tall', name: { ar: 'ديكور وإضاءة', en: 'Decor & lighting' } },
 ];
 
 const door = (n = 1, h = 0): Section => ({ kind: 'door', h, n });
@@ -76,6 +77,12 @@ export const CATALOG: ModuleDef[] = [
   tall('tall_niche', { ar: 'نيش (فاترينة زجاج مضيئة)', en: 'Display cabinet (lit vitrine)' }, 80, 40, 120, { sections: [{ kind: 'glass', h: 0, n: 2 }, door(2, 72)], shelves: 4, ledInside: true }, { d: 42 }),
   tall('tall_niche1', { ar: 'نيش ضلفة واحدة', en: 'Display cabinet, 1 door' }, 45, 30, 60, { sections: [{ kind: 'glass', h: 0, n: 1 }, door(1, 72)], shelves: 4, ledInside: true, hinge: 'L' }, { d: 42 }),
   base('base_glass', 'base', { ar: 'سفلية زجاج', en: 'Base, glass doors' }, 80, 30, 120, { sections: [{ kind: 'glass', h: 0, n: 2 }], shelves: 1 }),
+  tall('tall_vitrine', { ar: 'فاترينة زجاج بإطار أسود', en: 'Black-framed glass tower' }, 45, 30, 100, { sections: [{ kind: 'glass', h: 0, n: 1 }], shelves: 5, ledInside: true, vitrine: true, hinge: 'L' }, { d: 40, group: 'deco' }),
+  tall('tall_open', { ar: 'عمود أرفف مفتوح مضيء', en: 'Lit open shelf tower' }, 30, 20, 60, { sections: [{ kind: 'open', h: 0 }], shelves: 5, ledInside: true }, { d: 34, group: 'deco' }),
+  tall('tall_oven2', { ar: 'عمود فرنين', en: 'Double oven tower' }, 60, 60, 70, { sections: [door(1, 0), { kind: 'oven', h: 46 }, { kind: 'oven', h: 60 }, door(1, 72)], shelves: 0, hinge: 'L' }),
+  wall('wall_top_glass', { ar: 'علوية زجاج مضيئة (صف علوي)', en: 'Lit glass top-row unit' }, 80, 30, 120, { sections: [{ kind: 'glass', h: 0, n: 2 }], shelves: 0, ledInside: true, vitrine: true }, { h: 36, elev: 218, group: 'deco' }),
+  tall('deco_slat', { ar: 'بانوه خشب مضلّع', en: 'Slatted wood panel' }, 60, 10, 300, { sections: [{ kind: 'panel', h: 0 }], filler: true, slat: true }, { d: 4, h: 240, group: 'deco' }),
+  base('peninsula', 'deco', { ar: 'بار بسطح شلال', en: 'Peninsula with waterfall top' }, 180, 90, 300, { sections: [{ kind: 'panel', h: 0 }], shelves: 0, island: true, waterfall: 'L' }, { d: 70, h: 86 }),
   // ---- Appliances ----
   { key: 'app_fridge', cat: 'appliance', group: 'appliance', name: { ar: 'ثلاجة', en: 'Fridge' }, w: 70, d: 70, h: 180, elev: 0, minW: 50, maxW: 90, appliance: 'fridge', opts: {}, price: 0 },
   { key: 'app_fridge_sbs', cat: 'appliance', group: 'appliance', name: { ar: 'ثلاجة دولابي', en: 'Side-by-side fridge' }, w: 91, d: 72, h: 178, elev: 0, minW: 80, maxW: 120, appliance: 'fridge_sbs', opts: {}, price: 0 },
@@ -93,6 +100,9 @@ export const CATALOG: ModuleDef[] = [
   { key: 'app_dispenser', cat: 'appliance', group: 'appliance', name: { ar: 'مبرد مياه', en: 'Water dispenser' }, w: 32, d: 34, h: 100, elev: 0, minW: 28, maxW: 40, appliance: 'dispenser', opts: {}, price: 0 },
   { key: 'app_heater', cat: 'appliance', group: 'appliance', name: { ar: 'سخان مياه', en: 'Water heater' }, w: 45, d: 45, h: 75, elev: 150, minW: 35, maxW: 60, appliance: 'heater', opts: {}, price: 0 },
   { key: 'app_coffee', cat: 'appliance', group: 'appliance', name: { ar: 'ماكينة قهوة', en: 'Coffee machine' }, w: 28, d: 38, h: 36, elev: 86, minW: 20, maxW: 45, appliance: 'coffee', opts: {}, price: 0 },
+  { key: 'app_washer_top', cat: 'appliance', group: 'appliance', name: { ar: 'غسالة فوق أوتوماتيك', en: 'Top-load washer' }, w: 58, d: 60, h: 95, elev: 0, minW: 50, maxW: 70, appliance: 'washer_top', opts: {}, price: 0 },
+  { key: 'app_washer_mini', cat: 'appliance', group: 'appliance', name: { ar: 'غسالة أطفال', en: 'Mini (baby) washer' }, w: 40, d: 38, h: 52, elev: 0, minW: 30, maxW: 50, appliance: 'washer_top', opts: {}, price: 0 },
+  { key: 'app_pendant', cat: 'appliance', group: 'deco', name: { ar: 'إضاءة معلقة', en: 'Pendant light' }, w: 10, d: 10, h: 110, elev: 170, minW: 6, maxW: 40, appliance: 'pendant', opts: {}, price: 0 },
   { key: 'app_microwave', cat: 'appliance', group: 'appliance', name: { ar: 'ميكروويف', en: 'Microwave' }, w: 50, d: 38, h: 29, elev: 86, minW: 40, maxW: 60, appliance: 'microwave', opts: {}, price: 0 },
 ];
 

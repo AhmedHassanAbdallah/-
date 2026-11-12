@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { Check, Sparkles } from 'lucide-react';
 import { L } from '../i18n';
 import { autoLayout, DEFAULT_AUTO, type AutoOptions } from '../lib/autolayout';
+import { CATALOG } from '../lib/catalog';
 import { useStore } from '../store';
 import { ask, Seg, Sheet, ToggleRow } from './components';
+
+const EXTRA_KEYS = ['app_washer', 'app_dryer', 'app_washer_top', 'app_washer_mini', 'app_wine', 'app_freezer', 'app_chest', 'app_dispenser', 'app_microwave', 'app_coffee', 'app_heater'];
 
 /** Offline rule-based layout assistant. */
 export function Assistant(props: { onClose: () => void }) {
@@ -111,6 +114,24 @@ export function Assistant(props: { onClose: () => void }) {
             <ToggleRow label={L('عمود تخزين (مؤن)', 'Pantry tower')} on={opts.pantry} onChange={(pantry) => set({ pantry })} />
             <ToggleRow label={L('وحدات علوية', 'Wall units')} on={opts.wallUnits} onChange={(wallUnits) => set({ wallUnits })} />
             <ToggleRow label={L('جزيرة في المنتصف', 'Central island')} hint={L('تضاف فقط إذا سمحت المساحة بممرات 100 سم', 'Only if 100 cm aisles fit')} on={opts.island} onChange={(island) => set({ island })} />
+          </div>
+          <div className="card">
+            <h3>{L('أجهزتي الأخرى', 'My other appliances')}</h3>
+            <p className="small muted" style={{ marginBottom: 8 }}>
+              {L('اختر كل الأجهزة الموجودة عندك وسيضعها المساعد في أنسب مكان: الغسالات بجوار الحوض، والأجهزة القائمة في نهاية الصف، والصغيرة على سطح العمل.', 'Pick everything you own; the assistant places washers by the sink, free-standing units at the end of a run and small ones on the worktop.')}
+            </p>
+            <div className="chips" style={{ flexWrap: 'wrap', paddingBottom: 0 }}>
+              {EXTRA_KEYS.map((key) => {
+                const d = CATALOG.find((m) => m.key === key);
+                if (!d) return null;
+                const on = opts.extras.includes(key);
+                return (
+                  <button key={key} className={'chip' + (on ? ' active' : '')} onClick={() => set({ extras: on ? opts.extras.filter((k) => k !== key) : [...opts.extras, key] })}>
+                    {L(d.name.ar, d.name.en)}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <button className="btn primary block" style={{ marginTop: 14 }} onClick={run}>
             <Sparkles size={18} /> {L('اقترح تصميماً', 'Suggest a design')}

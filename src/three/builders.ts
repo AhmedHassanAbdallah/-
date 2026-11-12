@@ -133,12 +133,22 @@ export class MatLib {
 export class Batch {
   private parts = new Map<THREE.Material, THREE.BufferGeometry[]>();
   /** uv offsets in cm so textures continue across neighbouring items */
+  /** optional transform baked into the next primitives (opened doors, pulled-out drawers) */
+  private xf: THREE.Matrix4 | null = null;
   constructor(
     private ox = 0,
     private oz = 0,
   ) {}
 
+  with(m: THREE.Matrix4 | null, fn: () => void) {
+    const prev = this.xf;
+    this.xf = m;
+    fn();
+    this.xf = prev;
+  }
+
   private push(mat: THREE.Material, geo: THREE.BufferGeometry) {
+    if (this.xf) geo.applyMatrix4(this.xf);
     let list = this.parts.get(mat);
     if (!list) {
       list = [];
@@ -221,6 +231,8 @@ export interface BuildCtx {
   mats: MatLib;
   /** item stands against a wall (gets a backsplash) */
   onWall: boolean;
+  /** 0 = closed … 1 = doors and drawers fully open */
+  open?: number;
 }
 
 function handle(b: Batch, ctx: BuildCtx, f: FrontRect, w: number, zf: number) {
@@ -407,6 +419,15 @@ function buildCabinet(it: Item, ctx: BuildCtx, b: Batch) {
   const doorM = mats.door(itemFinishId(it, fin));
   const plinthM = mats.plinth(fin);
 
+  if (it.opts.slat) {
+    // backing board with vertical battens
+    b.box(doorM, w, it.h, 1.2, 0, it.h / 2, -d / 2 + 0.6);
+    const pitch = 4.2;
+    const n = Math.max(1, Math.floor(w / pitch));
+    const start = -((n - 1) * pitch) / 2;
+    for (let i = 0; i < n; i++) b.box(doorM, 2.4, it.h, Math.max(1, d - 1.2), start + i * pitch, it.h / 2, 0.6);
+    return;
+  }
   if (it.opts.filler) {
     b.box(doorM, w - gap * 0.3, hc - gap, ft, 0, pl + hc / 2, zf - ft / 2);
     if (pl > 0) b.box(plinthM, w, pl, 1.6, 0, pl / 2, zf - ft - 5);
@@ -415,8 +436,20 @@ function buildCabinet(it: Item, ctx: BuildCtx, b: Batch) {
 
   // ---- carcass ----
   const sideM = it.opts.island ? doorM : carc;
-  b.box(sideM, t, hc, cd, -w / 2 + t / 2, pl + hc / 2, zc);
-  b.box(sideM, t, hc, cd, w / 2 - t / 2, pl + hc / 2, zc);
+  const open = ctx.open ?? 0;
+  if (it.opts.vitrine) {
+    // glass sides held by a slim black frame
+    for (const sx of [-1, 1]) {
+      b.box(mats.glass, 0.6, hc - 2 * t, cd - 4, sx * (w / 2 - 0.5), pl + hc / 2, zc);
+      b.box(mats.black, 2, hc, 2, sx * (w / 2 - 1), pl + hc / 2, -d / 2 + 1);
+      b.box(mats.black, 2, hc, 2, sx * (w / 2 - 1), pl + hc / 2, zf - ft - 1);
+      b.box(mats.black, 2, t, cd, sx * (w / 2 - 1), pl + t / 2, zc);
+      b.box(mats.black, 2, t, cd, sx * (w / 2 - 1), pl + hc - t / 2, zc);
+    }
+  } else {
+    b.box(sideM, t, hc, cd, -w / 2 + t / 2, pl + hc / 2, zc);
+    b.box(sideM, t, hc, cd, w / 2 - t / 2, pl + hc / 2, zc);
+  }
   b.box(carc, w - 2 * t, t, cd, 0, pl + t / 2, zc);
   b.box(carc, w - 2 * t, t, cd, 0, pl + hc - t / 2, zc);
   if (it.opts.island) b.box(doorM, w - 2 * t, hc - 0.2, ft, 0, pl + hc / 2, -d / 2 + ft / 2);
@@ -431,9 +464,11 @@ function buildCabinet(it: Item, ctx: BuildCtx, b: Batch) {
   }
   const openBands = lay.bands.filter((x) => x.kind === 'open' || x.kind === 'glass');
   const shelves = it.opts.shelves ?? 0;
-  if (openBands.length && shelves > 0) {
-    const per = Math.max(1, Math.round(shelves / openBands.length));
-    for (const band of openBands) {
+  // shelves behind solid doors only matter once the doors are open
+  const shelfBands = open > 0 ? lay.bands.filter((x) => x.kind === 'open' || x.kind === 'glass' || x.kind === 'door') : openBands;
+  if (shelfBands.length && shelves > 0) {
+    const per = Math.max(1, Math.round(shelves / shelfBands.length));
+    for (const band of shelfBands) {
       const lo = Math.max(band.y0, pl + t);
       const hi = Math.min(band.y1, pl + hc - t);
       for (let s = 1; s <= per; s++) {
@@ -464,6 +499,7 @@ function buildCabinet(it: Item, ctx: BuildCtx, b: Batch) {
 
   // ---- fronts ----
   const gola = fin.handle === 'gola' && it.cat !== 'wall';
+  const frameM = it.opts.vitrine ? mats.black : doorM;
   for (const f of lay.fronts) {
     let fh = f.h;
     let cy = f.y + f.h / 2;
@@ -474,25 +510,80 @@ function buildCabinet(it: Item, ctx: BuildCtx, b: Batch) {
       cy -= 1.3;
       b.box(mats.darkSteel, f.w, 2.4, 1.2, cx, f.y + f.h - 1.3, zf - ft + 0.2);
     }
-    if (f.kind === 'glass') {
-      const fr = Math.min(5, f.w / 4);
-      b.box(doorM, f.w, fr, ft, cx, f.y + fr / 2, zf - ft / 2);
-      b.box(doorM, f.w, fr, ft, cx, f.y + f.h - fr / 2, zf - ft / 2);
-      b.box(doorM, fr, f.h - 2 * fr, ft, cx - f.w / 2 + fr / 2, cy, zf - ft / 2);
-      b.box(doorM, fr, f.h - 2 * fr, ft, cx + f.w / 2 - fr / 2, cy, zf - ft / 2);
-      b.box(mats.glass, f.w - 2 * fr, f.h - 2 * fr, 0.5, cx, cy, zf - ft / 2);
-    } else if (fin.doorStyle === 'shaker' && f.w >= 20 && fh >= 20) {
-      const rail = Math.min(6.5, f.w / 4, fh / 4);
-      const raise = 0.7;
-      b.box(doorM, f.w, fh, ft - raise, cx, cy, zf - ft / 2 - raise / 2);
-      b.box(doorM, f.w, rail, raise, cx, cy - fh / 2 + rail / 2, zf - raise / 2);
-      b.box(doorM, f.w, rail, raise, cx, cy + fh / 2 - rail / 2, zf - raise / 2);
-      b.box(doorM, rail, fh - 2 * rail, raise, cx - f.w / 2 + rail / 2, cy, zf - raise / 2);
-      b.box(doorM, rail, fh - 2 * rail, raise, cx + f.w / 2 - rail / 2, cy, zf - raise / 2);
-    } else {
-      b.box(doorM, f.w, fh, ft, cx, cy, zf - ft / 2);
+    // opening motion: doors swing on their hinge, drawers slide out, flaps lift
+    let m: THREE.Matrix4 | null = null;
+    const slide = Math.min(cd - 8, 42) * open;
+    if (open > 0) {
+      if (f.kind === 'door' || f.kind === 'glass') {
+        const px = f.hinge === 'R' ? cx + f.w / 2 : cx - f.w / 2;
+        const ang = (f.hinge === 'R' ? 1 : -1) * open * 1.75;
+        m = new THREE.Matrix4().makeTranslation(px, 0, zf - ft).multiply(new THREE.Matrix4().makeRotationY(ang)).multiply(new THREE.Matrix4().makeTranslation(-px, 0, -(zf - ft)));
+      } else if (f.kind === 'drawer') {
+        m = new THREE.Matrix4().makeTranslation(0, 0, slide);
+      } else if (f.kind === 'flap') {
+        const py = f.y + f.h;
+        m = new THREE.Matrix4().makeTranslation(0, py, zf - ft).multiply(new THREE.Matrix4().makeRotationX(-open * 1.6)).multiply(new THREE.Matrix4().makeTranslation(0, -py, -(zf - ft)));
+      }
     }
-    handle(b, ctx, f, w, zf);
+    b.with(m, () => {
+      if (f.kind === 'glass') {
+        const fr = it.opts.vitrine ? Math.min(2.4, f.w / 6) : Math.min(5, f.w / 4);
+        b.box(frameM, f.w, fr, ft, cx, f.y + fr / 2, zf - ft / 2);
+        b.box(frameM, f.w, fr, ft, cx, f.y + f.h - fr / 2, zf - ft / 2);
+        b.box(frameM, fr, f.h - 2 * fr, ft, cx - f.w / 2 + fr / 2, cy, zf - ft / 2);
+        b.box(frameM, fr, f.h - 2 * fr, ft, cx + f.w / 2 - fr / 2, cy, zf - ft / 2);
+        b.box(mats.glass, f.w - 2 * fr, f.h - 2 * fr, 0.5, cx, cy, zf - ft / 2);
+      } else if (fin.doorStyle === 'shaker' && f.w >= 20 && fh >= 20) {
+        const rail = Math.min(6.5, f.w / 4, fh / 4);
+        const raise = 0.7;
+        b.box(doorM, f.w, fh, ft - raise, cx, cy, zf - ft / 2 - raise / 2);
+        b.box(doorM, f.w, rail, raise, cx, cy - fh / 2 + rail / 2, zf - raise / 2);
+        b.box(doorM, f.w, rail, raise, cx, cy + fh / 2 - rail / 2, zf - raise / 2);
+        b.box(doorM, rail, fh - 2 * rail, raise, cx - f.w / 2 + rail / 2, cy, zf - raise / 2);
+        b.box(doorM, rail, fh - 2 * rail, raise, cx + f.w / 2 - rail / 2, cy, zf - raise / 2);
+      } else if (fin.doorStyle === 'fluted' && f.w >= 8) {
+        // vertical battens over a thinner board
+        const raise = 0.8;
+        b.box(doorM, f.w, fh, ft - raise, cx, cy, zf - ft / 2 - raise / 2);
+        const pitch = 2.6;
+        const n = Math.max(1, Math.floor(f.w / pitch));
+        const start = cx - ((n - 1) * pitch) / 2;
+        for (let i = 0; i < n; i++) b.box(doorM, 1.5, fh, raise, start + i * pitch, cy, zf - raise / 2);
+      } else {
+        b.box(doorM, f.w, fh, ft, cx, cy, zf - ft / 2);
+      }
+      handle(b, ctx, f, w, zf);
+      if (f.kind === 'drawer' && open > 0) {
+        const iw = f.w - 2 * t - 2.4;
+        const dz = Math.min(cd - 6, 50);
+        const zb = zf - ft - dz / 2;
+        if (f.h > 45 && f.w < 34) {
+          // tall narrow pull-out: wire shelves for bottles and spices
+          const levels = Math.max(2, Math.round(f.h / 20));
+          for (let k = 0; k < levels; k++) {
+            const y = f.y + 3 + (k * (f.h - 8)) / levels;
+            b.box(carc, iw, 1.2, dz, cx, y, zb);
+            b.box(mats.steel, 0.5, 5, dz, cx - iw / 2, y + 3, zb);
+            b.box(mats.steel, 0.5, 5, dz, cx + iw / 2, y + 3, zb);
+          }
+          b.box(carc, iw, f.h - 6, 1.4, cx, f.y + f.h / 2, zf - ft - dz);
+        } else {
+          const bh = Math.max(6, Math.min(20, f.h - 6));
+          const y0 = f.y + 2;
+          b.box(carc, iw, 0.8, dz, cx, y0 + 0.4, zb);
+          b.box(carc, 1.4, bh, dz, cx - iw / 2 + 0.7, y0 + bh / 2, zb);
+          b.box(carc, 1.4, bh, dz, cx + iw / 2 - 0.7, y0 + bh / 2, zb);
+          b.box(carc, iw, bh, 1.4, cx, y0 + bh / 2, zf - ft - dz + 0.7);
+          if (f.h <= 22) {
+            // cutlery organiser in shallow drawers
+            const wood = mats.woodDoor;
+            const cells = Math.max(2, Math.floor(iw / 11));
+            for (let k = 1; k < cells; k++) b.box(wood, 0.8, bh - 3, dz * 0.62, cx - iw / 2 + (iw * k) / cells, y0 + (bh - 3) / 2 + 0.8, zb + dz * 0.17);
+            b.box(wood, iw - 2.8, bh - 3, 0.8, cx, y0 + (bh - 3) / 2 + 0.8, zb - dz * 0.15);
+          }
+        }
+      }
+    });
   }
 
   // ---- appliance sections ----
@@ -538,6 +629,12 @@ function buildTop(it: Item, ctx: BuildCtx, b: Batch) {
   if (it.opts.sink) sinkAndTop(b, ctx, it, x0, x1, z0, z1, top);
   else b.box(mats.countertop(fin.countertop), x1 - x0, ct, z1 - z0, (x0 + x1) / 2, top + ct / 2, (z0 + z1) / 2);
   if (it.opts.cooktop) cooktop(b, mats, it.opts.cooktop, it.w, top + ct, 1);
+  const wf = it.opts.waterfall;
+  if (wf) {
+    const mat = mats.countertop(fin.countertop);
+    if (wf === 'L' || wf === 'both') b.box(mat, ct, top + ct, z1 - z0, x0 - ct / 2, (top + ct) / 2, (z0 + z1) / 2);
+    if (wf === 'R' || wf === 'both') b.box(mat, ct, top + ct, z1 - z0, x1 + ct / 2, (top + ct) / 2, (z0 + z1) / 2);
+  }
 }
 
 function buildSplash(it: Item, ctx: BuildCtx, b: Batch) {
@@ -644,6 +741,25 @@ function buildAppliance(it: Item, ctx: BuildCtx, b: Batch) {
       b.box(m.blackGlass, w - gw - 2, h - 5, 0.8, w / 2 - (w - gw) / 2 - 0.3, h / 2, zf - 0.7);
       b.box(m.steel, 1.1, h - 9, 1.3, -w / 2 + gw + 0.2, h / 2, zf + 1.2);
       b.cyl(m.steel, 1.7, 1.6, w / 2 - (w - gw) / 2 - 0.3, h * 0.28, zf + 0.5, 'z', 16);
+      break;
+    }
+    case 'washer_top': {
+      b.box(m.white, w, h - 4, d, 0, (h - 4) / 2 + 1.5, 0);
+      b.box(m.black, w - 6, 1.5, d - 6, 0, 0.75, 0);
+      b.box(m.white, w, 9, d * 0.22, 0, h - 4.5, -d / 2 + d * 0.11);
+      b.box(m.grey, w - 4, 1.2, d * 0.72, 0, h - 3.4, d * 0.11);
+      b.box(m.blackGlass, w * 0.5, 0.4, d * 0.4, 0, h - 2.7, d * 0.12);
+      b.cyl(m.steel, Math.min(2.4, w / 14), 1.6, w * 0.3, h - 3, -d / 2 + d * 0.11, 'z', 14);
+      b.cyl(m.steel, Math.min(2.4, w / 14), 1.6, -w * 0.3, h - 3, -d / 2 + d * 0.11, 'z', 14);
+      break;
+    }
+    case 'pendant': {
+      const r = Math.max(2.5, Math.min(w, d) / 2);
+      const body = Math.min(45, h * 0.45);
+      b.cyl(m.black, 0.35, h - body, 0, body + (h - body) / 2, 0, 'y', 8);
+      b.cyl(m.black, r, body, 0, body / 2, 0, 'y', 20);
+      b.cyl(m.led(ctx.fin), r - 0.6, 0.6, 0, -0.2, 0, 'y', 20);
+      b.cyl(m.black, r + 1.5, 1.2, 0, h - 0.6, 0, 'y', 20);
       break;
     }
     case 'freezer': {

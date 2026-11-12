@@ -107,6 +107,12 @@ export function itemParts(it: Item, rules: Rules, fin: Finishes): { parts: Part[
   const floorUnit = hasPlinth(it);
   if (floorUnit) hw.plinthCm += it.opts.island ? 2 * it.w + 2 * it.d : it.w;
 
+  if (it.opts.slat) {
+    const n = Math.max(1, Math.floor(it.w / 4.2));
+    push({ name: { ar: 'لوح خلفية البانوه', en: 'Panel backing' }, material: 'front', finish: finishId, L: it.h * 10, W: W, qty: 1, edge: 2 * (it.h * 10 + W), edgeNote: EDGE.all, grain: frontGrain });
+    push({ name: { ar: 'سدابة مضلّعة', en: 'Batten' }, material: 'front', finish: finishId, L: it.h * 10, W: 24, qty: n, edge: 2 * it.h * 10, edgeNote: EDGE.front, grain: frontGrain });
+    return { parts, hw };
+  }
   if (it.opts.filler) {
     push({ name: { ar: 'حشوة أمامية', en: 'Filler front' }, material: 'front', finish: finishId, L: Hc, W: W, qty: 1, edge: 2 * (Hc + W), edgeNote: EDGE.all, grain: frontGrain });
     return { parts, hw };

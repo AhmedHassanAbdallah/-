@@ -1,6 +1,6 @@
 import type { Item, ItemOptions, Room } from '../types';
 import { BASE_D, CATALOG, createItem, WALL_D } from './catalog';
-import { bounds, cornerIsConvex, freeIntervals, getWalls, itemCorners, placeOnWall, pointInPolygon, quadsOverlap, rectCorners, wallObstacles, type Wall } from './geometry';
+import { bounds, cornerIsConvex, findFreeSpot, freeIntervals, getWalls, itemCorners, placeOnWall, pointInPolygon, quadsOverlap, rectCorners, wallObstacles, type Wall } from './geometry';
 import { L } from '../i18n';
 
 export type LayoutStyle = 'auto' | 'I' | 'L' | 'U';
@@ -16,6 +16,8 @@ export interface AutoOptions {
   pantry: boolean;
   wallUnits: boolean;
   island: boolean;
+  /** catalog keys of the appliances the user owns and wants placed */
+  extras: string[];
 }
 
 export const DEFAULT_AUTO: AutoOptions = {
@@ -27,6 +29,7 @@ export const DEFAULT_AUTO: AutoOptions = {
   pantry: false,
   wallUnits: true,
   island: false,
+  extras: [],
 };
 
 export interface AutoResult {
@@ -369,6 +372,52 @@ export function autoLayout(room: Room, opts: AutoOptions): AutoResult {
     notes.push(L('لم يوجد مكان مناسب للبوتاجاز.', 'No suitable position for the cooker.'));
   }
 
+  // ---- the user's own appliances ----
+  const later: string[] = [];
+  const sinkRun = sinkPos ? (sinkPos as { ri: number; t0: number }) : null;
+  for (const key of opts.extras ?? []) {
+    const d = def(key);
+    if (!d) continue;
+    if (d.elev > 0) {
+      later.push(key);
+      continue;
+    }
+    let done = false;
+    const order = baseStrips.map((_, i) => i).sort((p, q) => (p === sinkRun?.ri ? -1 : 0) - (q === sinkRun?.ri ? -1 : 0));
+    if (d.opts.countertop) {
+      // under-counter machines go next to the sink (water and drain are there)
+      for (const ri of order) {
+        const s = baseStrips[ri];
+        const tc = sinkRun && ri === sinkRun.ri ? sinkRun.t0 + sinkW / 2 : (s.a + s.b) / 2;
+        const t0 = s.fit(tc, d.w);
+        if (t0 !== null) {
+          add(key, s.wall, t0, d.w);
+          s.take(t0, d.w);
+          done = true;
+          break;
+        }
+      }
+    } else {
+      // free-standing: park at the open end of a run
+      const tallOne = d.h > 100;
+      for (const ri of [...order].reverse()) {
+        const s = baseStrips[ri];
+        const fr = s.free(tallOne ? tallBlocked(s.wall) : []).filter((f) => f.b - f.a >= d.w);
+        const atEnd = fr.find((f) => f.b > s.b - 0.5 && !runs[ri].cornerEnd);
+        const atStart = fr.find((f) => f.a < s.a + 0.5 && !runs[ri].cornerStart);
+        const t0 = atEnd ? atEnd.b - d.w : atStart ? atStart.a : null;
+        if (t0 !== null) {
+          add(key, s.wall, t0, d.w);
+          s.take(t0, d.w);
+          if (d.h > 90) wallStrips[ri].take(t0, d.w);
+          done = true;
+          break;
+        }
+      }
+    }
+    if (!done) later.push(key);
+  }
+
   // ---- fill the remaining base space ----
   baseStrips.forEach((s) => {
     for (const f of s.free()) {
@@ -433,6 +482,26 @@ export function autoLayout(room: Room, opts: AutoOptions): AutoResult {
         }
       }
     });
+  }
+
+  // ---- appliances that stand on the worktop, hang on a wall, or did not fit in the runs ----
+  const usedTops = new Set<string>();
+  for (const key of later) {
+    const d = def(key);
+    if (d.elev > 0 && d.elev < 120) {
+      // worktop appliance: centre it on a plain base unit, pushed back to the wall
+      const host = items.find((it) => it.cat === 'base' && it.opts.countertop && !it.opts.sink && !it.opts.cooktop && !it.opts.filler && !it.opts.island && it.w >= d.w && !usedTops.has(it.id));
+      if (host) {
+        usedTops.add(host.id);
+        const r = (host.rot * Math.PI) / 180;
+        const back = host.d / 2 - d.d / 2 - 4;
+        items.push(createItem(d, { x: Math.round((host.x + Math.sin(r) * back) * 10) / 10, y: Math.round((host.y - Math.cos(r) * back) * 10) / 10, rot: host.rot }));
+        continue;
+      }
+    }
+    const spot = findFreeSpot(room, items, { w: d.w, d: d.d, elev: d.elev, h: d.h });
+    if (spot) items.push(createItem(d, spot));
+    else notes.push(L(`لم يوجد مكان مناسب لـ «${d.name.ar}»؛ أضفه يدوياً.`, `No room for “${d.name.en}”; add it manually.`));
   }
 
   // ---- island ----

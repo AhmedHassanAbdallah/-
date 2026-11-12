@@ -85,7 +85,9 @@ export type ApplianceKind =
   | 'dispenser'
   | 'heater'
   | 'wine'
-  | 'coffee';
+  | 'coffee'
+  | 'washer_top'
+  | 'pendant';
 
 export interface ItemOptions {
   sections?: Section[];
@@ -103,6 +105,12 @@ export interface ItemOptions {
   ledInside?: boolean;
   /** LED profile under a wall unit; undefined follows the project setting */
   ledUnder?: boolean;
+  /** display unit: black metal frame with glass sides */
+  vitrine?: boolean;
+  /** countertop runs down to the floor at the unit's end(s) */
+  waterfall?: 'L' | 'R' | 'both' | null;
+  /** decorative slatted (fluted) wood panel */
+  slat?: boolean;
   /** rotated by hand: do not turn it back to face the nearest wall while dragging */
   freeRot?: boolean;
   /** carries a countertop slab */
@@ -159,7 +167,7 @@ export interface ModuleDef {
 export type DoorMaterialType = 'mdf' | 'hpl' | 'pvc' | 'acrylic' | 'wood';
 export type CountertopType = 'granite' | 'marble' | 'quartz' | 'wood' | 'hpl';
 export type HandleType = 'bar' | 'knob' | 'cup' | 'gola' | 'none';
-export type DoorStyle = 'flat' | 'shaker';
+export type DoorStyle = 'flat' | 'shaker' | 'fluted';
 
 export interface Finishes {
   baseDoor: string;

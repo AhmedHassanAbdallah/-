@@ -185,3 +185,15 @@ describe('project normalisation', () => {
     expect(computeBom(p).cost.total).toBeGreaterThan(0);
   });
 });
+
+describe('assistant with owned appliances', () => {
+  it('places every selected appliance without conflicts', () => {
+    const r = room(rectRoom(480, 360));
+    r.openings.push({ id: uid(), type: 'door', wall: 3, offset: 20, width: 90, height: 210, sill: 0 });
+    const extras = ['app_washer', 'app_dryer', 'app_washer_mini', 'app_freezer', 'app_dispenser', 'app_microwave', 'app_coffee', 'app_heater'];
+    const res = autoLayout(r, { ...DEFAULT_AUTO, style: 'L', dishwasher: true, extras });
+    for (const k of extras) expect(res.items.filter((i) => i.type === k)).toHaveLength(1);
+    const pr = findProblems(res.items, r);
+    expect([...pr.entries()].map(([id, v]) => res.items.find((i) => i.id === id)!.type + ':' + v)).toEqual([]);
+  });
+});

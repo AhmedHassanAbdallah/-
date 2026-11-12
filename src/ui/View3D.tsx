@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Camera, Footprints, PanelTop, RotateCw, SlidersHorizontal, Square, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
+import { Box, Camera, DoorOpen, Footprints, PanelTop, RotateCw, SlidersHorizontal, Square, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
 import { fmtCm, getLang, L } from '../i18n';
 import { tagItems } from '../lib/bom';
 import { itemName } from '../lib/catalog';
@@ -63,6 +63,11 @@ export function View3D(props: { withFinishes: boolean }) {
   const [walk, setWalk] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [propsOpen, setPropsOpen] = useState(false);
+  const [openAll, setOpenAll] = useState(false);
+  const [openIds, setOpenIds] = useState<string[]>([]);
+  useEffect(() => {
+    sm.current?.setOpen(openAll, openIds);
+  }, [openAll, openIds]);
   const lang = getLang();
 
   useEffect(() => {
@@ -193,6 +198,17 @@ export function View3D(props: { withFinishes: boolean }) {
                 </button>
               </>
             )}
+            <button
+              className={'iconbtn light' + (openAll ? ' on' : '')}
+              onClick={() => {
+                setOpenAll((v) => !v);
+                setOpenIds([]);
+              }}
+              aria-label={L('فتح الضلف', 'Open doors')}
+              title={L('فتح / غلق كل الضلف والأدراج', 'Open / close all doors and drawers')}
+            >
+              <DoorOpen size={19} />
+            </button>
             <button className="iconbtn light" onClick={shot} aria-label={L('التقاط صورة', 'Screenshot')} title={L('حفظ صورة', 'Save image')}>
               <Camera size={19} />
             </button>
@@ -214,6 +230,12 @@ export function View3D(props: { withFinishes: boolean }) {
                 <SlidersHorizontal size={18} />
                 {L('خصائص', 'Edit')}
               </button>
+              {selected.cat !== 'appliance' && (
+                <button className="act" onClick={() => setOpenIds((ids) => (ids.includes(selected.id) ? ids.filter((x) => x !== selected.id) : [...ids, selected.id]))}>
+                  <DoorOpen size={18} />
+                  {openAll || openIds.includes(selected.id) ? L('غلق', 'Close') : L('فتح', 'Open')}
+                </button>
+              )}
               <button className="act" onClick={() => useStore.getState().updateItem(selected.id, { rot: (selected.rot + 90) % 360, opts: { ...selected.opts, freeRot: true } })}>
                 <RotateCw size={18} />
                 {L('تدوير', 'Rotate')}
