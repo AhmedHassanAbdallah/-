@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Camera, Footprints, PanelTop, SlidersHorizontal, Square, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
+import { Box, Camera, Footprints, PanelTop, RotateCw, SlidersHorizontal, Square, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
 import { fmtCm, getLang, L } from '../i18n';
 import { tagItems } from '../lib/bom';
 import { itemName } from '../lib/catalog';
@@ -213,6 +213,10 @@ export function View3D(props: { withFinishes: boolean }) {
               <button className="act" onClick={() => setPropsOpen(true)}>
                 <SlidersHorizontal size={18} />
                 {L('خصائص', 'Edit')}
+              </button>
+              <button className="act" onClick={() => useStore.getState().updateItem(selected.id, { rot: (selected.rot + 90) % 360, opts: { ...selected.opts, freeRot: true } })}>
+                <RotateCw size={18} />
+                {L('تدوير', 'Rotate')}
               </button>
               <button className="act danger" onClick={() => removeItem(selected.id)}>
                 <Trash2 size={18} />

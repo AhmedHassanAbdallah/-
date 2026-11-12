@@ -350,7 +350,7 @@ export class SceneManager {
           batch.box(white, 5, dh, T + 2, o.x1 - 2.5, dh / 2, -T / 2);
           batch.box(white, ow, 5, T + 2, cx, dh - 2.5, -T / 2);
           batch.box(this.mats.woodDoor, ow - 10, dh - 5, 4, cx, (dh - 5) / 2, -T + 3);
-          batch.cyl(this.mats.steel, 1.2, 12, o.x0 + 12, dh * 0.48, -T + 6.5, 'x', 10);
+          batch.cyl(this.mats.steel, 1.2, 12, o.hinge === 'R' ? o.x0 + 12 : o.x1 - 12, dh * 0.48, o.swing === 'out' ? -T + 0.5 : -T + 6.5, 'x', 10);
         }
       }
       shape.lineTo(L, 0);
@@ -444,11 +444,13 @@ export class SceneManager {
     this.selection = null;
     const walls = getWalls(p.room);
     const ledItems: Item[] = [];
+    const insideItems: Item[] = [];
     for (const it of p.items) {
       const onWall = !!itemWall(it, walls);
       const g = buildItem(it, { rules: p.rules, fin: p.finishes, mats: this.mats, onWall });
       this.itemsGroup.add(g);
-      if (p.finishes.led && it.cat === 'wall' && it.elev > 100) ledItems.push(it);
+      if ((it.opts.ledUnder ?? p.finishes.led) && it.cat === 'wall' && it.elev > 100) ledItems.push(it);
+      if (it.opts.ledInside) insideItems.push(it);
     }
     // a few soft lights under the wall units (capped for mobile GPUs)
     const max = 5;
@@ -461,6 +463,14 @@ export class SceneManager {
       const fz = Math.cos(r);
       const light = new THREE.PointLight(color, 0.55 * p.finishes.brightness, 1.7, 2);
       light.position.set((it.x + fx * 4) * CM, (it.elev - 8) * CM, (it.y + fz * 4) * CM);
+      this.ledGroup.add(light);
+    }
+    // glow inside lit display units
+    const stepIn = Math.max(1, Math.ceil(insideItems.length / 3));
+    for (let i = 0; i < insideItems.length; i += stepIn) {
+      const it = insideItems[i];
+      const light = new THREE.PointLight(color, 0.35 * p.finishes.brightness, 1.3, 2);
+      light.position.set(it.x * CM, (it.elev + it.h * 0.62) * CM, it.y * CM);
       this.ledGroup.add(light);
     }
     this.updateSelection();

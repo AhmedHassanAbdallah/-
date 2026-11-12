@@ -501,13 +501,28 @@ function buildCabinet(it: Item, ctx: BuildCtx, b: Batch) {
     if (band.kind === 'micro') microFront(b, mats, lay.x0 - w / 2 + 0.3, lay.x1 - w / 2 - 0.3, band.y0, band.y1, zf);
   }
 
+  // LED profiles inside: two uprights behind the front edge and one under the top of every glass / open section
+  if (it.opts.ledInside) {
+    const led = mats.led(fin);
+    const bands = openBands.length ? openBands : lay.bands.slice(0, 1);
+    for (const band of bands) {
+      const lo = Math.max(band.y0, pl + t);
+      const hi = Math.min(band.y1, pl + hc - t);
+      if (hi - lo < 6) continue;
+      const z = zf - ft - 2.2;
+      b.box(led, 0.9, hi - lo - 1, 0.9, -w / 2 + t + 0.7, (lo + hi) / 2, z);
+      b.box(led, 0.9, hi - lo - 1, 0.9, w / 2 - t - 0.7, (lo + hi) / 2, z);
+      b.box(led, w - 2 * t - 3, 0.6, 1.2, 0, hi - 0.5, z);
+    }
+  }
+
   // built-in extractor and LED under wall units
   if (it.cat === 'wall') {
     if (it.opts.hood) {
       b.box(mats.steel, w - 5, 1.6, cd - 6, 0, -0.8, zc);
       b.box(mats.darkSteel, w - 16, 0.4, cd - 18, 0, -1.7, zc);
     }
-    if (fin.led && it.elev > 100) b.box(mats.led(fin), w - 6, 0.5, 1.8, 0, -0.25, zf - 7);
+    if ((it.opts.ledUnder ?? fin.led) && it.elev > 100) b.box(mats.led(fin), w - 6, 0.5, 1.8, 0, -0.25, zf - 7);
   }
 }
 
@@ -609,6 +624,7 @@ function buildAppliance(it: Item, ctx: BuildCtx, b: Batch) {
       b.box(m.steel, 1.2, 1.2, 2.6, w / 2 - 9, h - 15.5, zf + 1);
       break;
     }
+    case 'dryer':
     case 'washer': {
       b.box(m.white, w - 0.6, h - 1.5, d - 3, 0, 1.5 + (h - 1.5) / 2, -1.5);
       b.box(m.black, w - 6, 1.5, d - 10, 0, 0.75, -2);
@@ -628,6 +644,60 @@ function buildAppliance(it: Item, ctx: BuildCtx, b: Batch) {
       b.box(m.blackGlass, w - gw - 2, h - 5, 0.8, w / 2 - (w - gw) / 2 - 0.3, h / 2, zf - 0.7);
       b.box(m.steel, 1.1, h - 9, 1.3, -w / 2 + gw + 0.2, h / 2, zf + 1.2);
       b.cyl(m.steel, 1.7, 1.6, w / 2 - (w - gw) / 2 - 0.3, h * 0.28, zf + 0.5, 'z', 16);
+      break;
+    }
+    case 'freezer': {
+      b.box(m.casing, w - 1, h - 3, d - 5, 0, 3 + (h - 3) / 2, -2.5);
+      b.box(m.black, w - 6, 3, d - 10, 0, 1.5, -2);
+      b.box(m.white, w - 0.6, h - 3.4, 5, 0, 3 + (h - 3) / 2, zf - 2.5);
+      b.box(m.darkSteel, 1.4, 50, 1.6, -w / 2 + 5, h * 0.55, zf + 2.2);
+      b.box(m.blackGlass, 12, 4, 0.4, 0, h - 10, zf + 0.1);
+      break;
+    }
+    case 'chest_freezer': {
+      b.box(m.white, w, h - 7, d, 0, (h - 7) / 2, 0);
+      b.box(m.white, w + 1, 6, d + 1, 0, h - 3, 0);
+      b.box(m.grey, w + 1.2, 0.8, d + 1.2, 0, h - 6.4, 0);
+      b.box(m.steel, 14, 1.6, 2, 0, h - 4, zf + 1.2);
+      b.box(m.black, w - 8, 3, d - 8, 0, 1.5, 0);
+      break;
+    }
+    case 'wine': {
+      const pl = Math.min(ctx.rules.plinthH / 10, 12);
+      b.box(m.casing, w - 1, h - pl, d - 4, 0, pl + (h - pl) / 2, -2);
+      b.box(m.plinth(ctx.fin), w, pl, 1.6, 0, pl / 2, zf - 7);
+      b.box(m.darkSteel, w - 0.6, h - pl - 0.6, 1.6, 0, pl + (h - pl) / 2, zf - 1.4);
+      b.box(m.blackGlass, w - 7, h - pl - 8, 1, 0, pl + (h - pl) / 2, zf - 0.4);
+      b.box(m.steel, 1.2, h - pl - 20, 1.4, w / 2 - 3, pl + (h - pl) / 2, zf + 1.6);
+      break;
+    }
+    case 'dispenser': {
+      b.box(m.white, w, h, d, 0, h / 2, 0);
+      b.box(m.grey, w - 6, 16, 1, 0, h - 26, zf + 0.2);
+      b.box(m.grey, w - 8, 1.2, 9, 0, h - 36, zf + 3);
+      b.cyl(m.steel, 1, 3, -5, h - 20, zf + 1.5, 'z', 10);
+      b.cyl(m.steel, 1, 3, 5, h - 20, zf + 1.5, 'z', 10);
+      b.cyl(m.glass, Math.min(w, d) / 2 - 3, 34, 0, h + 19, 0, 'y', 22);
+      b.cyl(m.glass, 5, 6, 0, h + 3, 0, 'y', 14);
+      break;
+    }
+    case 'heater': {
+      const r = Math.min(w, d) / 2;
+      b.cyl(m.white, r, h, 0, h / 2, 0, 'y', 28);
+      b.cyl(m.grey, r + 0.4, 2, 0, 1, 0, 'y', 28);
+      b.cyl(m.grey, r + 0.4, 2, 0, h - 1, 0, 'y', 28);
+      b.cyl(m.steel, 1, 14, -6, -7, 0, 'y', 10);
+      b.cyl(m.steel, 1, 14, 6, -7, 0, 'y', 10);
+      b.cyl(m.blackGlass, 3, 0.6, 0, h * 0.25, r, 'z', 16);
+      break;
+    }
+    case 'coffee': {
+      b.box(m.darkSteel, w, h, d * 0.6, 0, h / 2, -d * 0.2);
+      b.box(m.darkSteel, w, 4, d, 0, 2, 0);
+      b.box(m.darkSteel, w, 9, d, 0, h - 4.5, 0);
+      b.box(m.steel, w * 0.5, 5, 6, 0, h - 11, d * 0.2);
+      b.box(m.steel, w - 4, 0.6, d * 0.35, 0, 4.3, d * 0.28);
+      b.cyl(m.white, 3.4, 6, 0, 7.6, d * 0.28, 'y', 16);
       break;
     }
     default:

@@ -25,6 +25,9 @@ export interface Opening {
   height: number;
   /** bottom of the opening above the floor (0 for doors) */
   sill: number;
+  /** door hinge side seen from inside the room, and swing direction */
+  hinge?: 'L' | 'R';
+  swing?: 'in' | 'out';
 }
 
 export type UtilityType = 'water' | 'drain' | 'electric' | 'gas';
@@ -68,7 +71,21 @@ export interface Section {
   n?: number;
 }
 
-export type ApplianceKind = 'fridge' | 'fridge_sbs' | 'cooker' | 'hood' | 'dishwasher' | 'washer' | 'microwave';
+export type ApplianceKind =
+  | 'fridge'
+  | 'fridge_sbs'
+  | 'cooker'
+  | 'hood'
+  | 'dishwasher'
+  | 'washer'
+  | 'microwave'
+  | 'freezer'
+  | 'chest_freezer'
+  | 'dryer'
+  | 'dispenser'
+  | 'heater'
+  | 'wine'
+  | 'coffee';
 
 export interface ItemOptions {
   sections?: Section[];
@@ -82,6 +99,12 @@ export interface ItemOptions {
   cooktop?: 'gas' | 'induction' | null;
   /** built-in extractor in a wall cabinet */
   hood?: boolean;
+  /** LED profile inside the unit (shows through glass / open sections) */
+  ledInside?: boolean;
+  /** LED profile under a wall unit; undefined follows the project setting */
+  ledUnder?: boolean;
+  /** rotated by hand: do not turn it back to face the nearest wall while dragging */
+  freeRot?: boolean;
   /** carries a countertop slab */
   countertop?: boolean;
   /** free-standing island: finished back and overhang all round */

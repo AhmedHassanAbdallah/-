@@ -351,7 +351,7 @@ export function Plan2D() {
       x += (dx / l) * 4;
       y += (dy / l) * 4;
     }
-    updateItem(selected.id, { rot, x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 });
+    updateItem(selected.id, { rot, x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, opts: { ...selected.opts, freeRot: true } });
   };
 
   const freeSpotOnWall = (width: number): { wall: number; offset: number } => {
@@ -559,8 +559,21 @@ export function Plan2D() {
                 <rect x={op.offset} y={-T - 0.5} width={op.width} height={T + 1} fill="#fbfaf7" stroke={col} strokeWidth={sel ? 2.4 : 1.2} vectorEffect="non-scaling-stroke" />
                 {op.type === 'door' ? (
                   <>
-                    <path d={`M ${op.offset} 0 L ${op.offset} ${op.width} A ${op.width} ${op.width} 0 0 0 ${op.offset + op.width} 0`} fill="rgba(139,94,52,0.08)" stroke={col} strokeWidth={1} strokeDasharray={`${4 * px} ${3 * px}`} vectorEffect="non-scaling-stroke" />
-                    <line x1={op.offset} y1={0} x2={op.offset} y2={op.width} stroke={col} strokeWidth={2} vectorEffect="non-scaling-stroke" />
+                    {(() => {
+                      const right = op.hinge === 'R';
+                      const out = op.swing === 'out';
+                      const hx = right ? op.offset + op.width : op.offset;
+                      const ex = right ? op.offset : op.offset + op.width;
+                      const y0 = out ? -T : 0;
+                      const y1 = y0 + (out ? -op.width : op.width);
+                      const sweep = right !== out ? 1 : 0;
+                      return (
+                        <>
+                          <path d={`M ${hx} ${y0} L ${hx} ${y1} A ${op.width} ${op.width} 0 0 ${sweep} ${ex} ${y0}`} fill="rgba(139,94,52,0.08)" stroke={col} strokeWidth={1} strokeDasharray={`${4 * px} ${3 * px}`} vectorEffect="non-scaling-stroke" />
+                          <line x1={hx} y1={y0} x2={hx} y2={y1} stroke={col} strokeWidth={2} vectorEffect="non-scaling-stroke" />
+                        </>
+                      );
+                    })()}
                   </>
                 ) : (
                   <>

@@ -220,8 +220,9 @@ export function itemParts(it: Item, rules: Rules, fin: Finishes): { parts: Part[
   if (floorUnit) hw.legs += it.w > 90 ? 6 : 4;
   if (it.cat === 'wall') {
     hw.hangers += 2;
-    if (fin.led) hw.ledCm += it.w;
+    if (it.opts.ledUnder ?? fin.led) hw.ledCm += it.w;
   }
+  if (it.opts.ledInside) hw.ledCm += 2 * lay.carcassH + it.w;
   if (it.opts.sink) hw.sinks += 1;
   if (it.opts.cooktop) hw.hobs += 1;
   return { parts, hw };

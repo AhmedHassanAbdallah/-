@@ -94,6 +94,18 @@ export function RoomElementSheet(props: { sel: RoomSel; onClose: () => void }) {
             <NumField label={L('البعد عن بداية الحائط', 'Offset from wall start')} value={round1(op.offset)} min={0} max={Math.max(0, wall.len - op.width)} step={5} unit={cm} onChange={(offset) => upd({ offset })} />
             {op.type === 'window' && <NumField label={L('ارتفاع الجلسة', 'Sill height')} value={op.sill} min={0} max={room.height - 30} step={5} unit={cm} onChange={(sill) => upd({ sill, height: Math.min(op.height, room.height - sill) })} />}
           </div>
+          {op.type === 'door' && (
+            <div className="grid2" style={{ marginTop: 10 }}>
+              <div className="field">
+                <span className="lbl">{L('جهة المفصلات', 'Hinge side')}</span>
+                <Seg block value={op.hinge ?? 'L'} onChange={(hinge) => upd({ hinge })} options={[{ id: 'L', label: L('يسار', 'Left') }, { id: 'R', label: L('يمين', 'Right') }]} />
+              </div>
+              <div className="field">
+                <span className="lbl">{L('اتجاه الفتح', 'Opens')}</span>
+                <Seg block value={op.swing ?? 'in'} onChange={(swing) => upd({ swing })} options={[{ id: 'in', label: L('للداخل', 'Inwards') }, { id: 'out', label: L('للخارج', 'Outwards') }]} />
+              </div>
+            </div>
+          )}
           <button
             className="btn danger block"
             style={{ marginTop: 12 }}

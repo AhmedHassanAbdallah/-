@@ -302,6 +302,8 @@ export function snapItem(it: Item, pos: Vec2, room: Room, others: Item[], magnet
     const t = dot(rel, w.dir);
     const n = dot(rel, w.n);
     if (t < -15 || t > w.len + 15) continue;
+    // a unit the user turned by hand only snaps to walls it already faces
+    if (it.opts.freeRot && angleDiff(w.angle, it.rot) > 1) continue;
     // when the item already faces this wall its depth is `d`; otherwise use the smaller of w/d as the reach
     const reach = it.d / 2 + 28;
     if (n < -40 || n > reach) continue;
@@ -410,6 +412,27 @@ export function snapItem(it: Item, pos: Vec2, room: Room, others: Item[], magnet
   }
   x += u.x * du + f.x * df;
   y += u.y * du + f.y * df;
+  // rotated units: bring the nearest edge flush with a wall
+  const cs = rectCorners(x, y, it.w, it.d, it.rot);
+  for (const w of walls) {
+    let nmin = Infinity;
+    let tmin = Infinity;
+    let tmax = -Infinity;
+    for (const c of cs) {
+      const rel = sub(c, w.a);
+      nmin = Math.min(nmin, dot(rel, w.n));
+      tmin = Math.min(tmin, dot(rel, w.dir));
+      tmax = Math.max(tmax, dot(rel, w.dir));
+    }
+    if (tmax > 0 && tmin < w.len && Math.abs(nmin) < magnet + 6) {
+      x -= w.n.x * nmin;
+      y -= w.n.y * nmin;
+      for (const c of cs) {
+        c.x -= w.n.x * nmin;
+        c.y -= w.n.y * nmin;
+      }
+    }
+  }
   return { x: round1(x), y: round1(y), rot: it.rot, wall: null };
 }
 

@@ -238,7 +238,7 @@ export function computeBom(p: Project): Bom {
   line('hanger', 'hardware', { ar: 'علّاقات الوحدات العلوية', en: 'Wall hangers' }, hw.hangers, U.pc, pr.hanger);
   line('pin', 'hardware', { ar: 'حوامل أرفف', en: 'Shelf pins' }, hw.shelfPins, U.pc, pr.shelfPin);
   line('plinth', 'hardware', { ar: 'وزرة', en: 'Plinth' }, hw.plinthCm / 100, U.m, pr.plinth);
-  line('led', 'hardware', { ar: 'إضاءة LED', en: 'LED strip' }, hw.ledCm / 100, U.m, pr.led);
+  line('led', 'hardware', { ar: 'إضاءة LED بروفايل', en: 'LED profile' }, hw.ledCm / 100, U.m, pr.led);
   line('sink', 'hardware', { ar: 'حوض + خلاط', en: 'Sink + mixer' }, hw.sinks, U.set, pr.sinkSet);
   const runM = { base: runCm.base / 100, wall: runCm.wall / 100, tall: runCm.tall / 100, total: (runCm.base + runCm.wall + runCm.tall) / 100 };
   line('labor', 'services', { ar: 'مصنعية التصنيع', en: 'Manufacturing labour' }, runM.total, U.m, pr.laborPerM);

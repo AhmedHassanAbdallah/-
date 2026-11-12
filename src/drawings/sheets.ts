@@ -295,10 +295,15 @@ function drawPlan(k: Kit, p: Project, bom: Bom, box: { x: number; y: number; w: 
       ctx.lineWidth = 0.14;
       ctx.strokeStyle = SOFT;
       ctx.setLineDash([1, 0.7]);
-      ctx.arc(o, 0, ow, 0, Math.PI / 2);
+      const right = op.hinge === 'R';
+      const out = op.swing === 'out';
+      const hx = right ? o + ow : o;
+      const y0 = out ? -T * sc : 0;
+      const a0 = out ? (right ? Math.PI : -Math.PI / 2) : right ? Math.PI / 2 : 0;
+      ctx.arc(hx, y0, ow, a0, a0 + Math.PI / 2);
       ctx.stroke();
       ctx.setLineDash([]);
-      k.line(o, 0, o, ow, 0.35);
+      k.line(hx, y0, hx, y0 + (out ? -ow : ow), 0.35);
     } else {
       k.line(o, (-T * sc) / 2, o + ow, (-T * sc) / 2, 0.4, '#2f80ed');
       k.line(o, (-T * sc) / 2 - 0.6, o + ow, (-T * sc) / 2 - 0.6, 0.12, '#2f80ed');

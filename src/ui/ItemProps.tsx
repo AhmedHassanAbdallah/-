@@ -78,12 +78,15 @@ export function ItemProps(props: { id: string; tag?: string; onClose: () => void
         </div>
         <div className="grid2" style={{ marginTop: 10 }}>
           <NumField label={L('الارتفاع عن الأرض', 'Height above floor')} value={it.elev} min={0} max={300} onChange={(elev) => set({ elev })} stepper={false} unit={L('سم', 'cm')} />
-          {att ? (
-            <NumField label={L('المسافة من بداية الحائط', 'Offset from wall start')} value={round1(att.t0)} min={0} max={Math.max(0, att.wall.len - it.w)} onChange={setOffset} stepper={false} unit={L('سم', 'cm')} />
-          ) : (
-            <NumField label={L('زاوية الدوران', 'Rotation')} value={it.rot} min={0} max={359} step={15} onChange={(rot) => set({ rot: rot % 360 })} unit="°" />
-          )}
+          {att && <NumField label={L('المسافة من بداية الحائط', 'Offset from wall start')} value={round1(att.t0)} min={0} max={Math.max(0, att.wall.len - it.w)} onChange={setOffset} stepper={false} unit={L('سم', 'cm')} />}
+          <NumField label={L('زاوية الدوران', 'Rotation')} value={it.rot} min={-360} max={720} step={15} onChange={(rot) => set({ rot: ((rot % 360) + 360) % 360, opts: { ...it.opts, freeRot: true } })} unit="°" />
         </div>
+        <ToggleRow
+          label={L('التصاق تلقائي بالحوائط عند السحب', 'Snap to walls while dragging')}
+          hint={L('أوقفه لتثبيت زاوية الدوران التي اخترتها', 'Turn off to keep the angle you chose')}
+          on={!it.opts.freeRot}
+          onChange={(v) => setOpts({ freeRot: !v })}
+        />
         {def && (
           <div className="chips" style={{ marginTop: 10, paddingBottom: 0 }}>
             {[15, 20, 30, 40, 45, 50, 60, 70, 80, 90, 100, 120]
@@ -214,6 +217,9 @@ export function ItemProps(props: { id: string; tag?: string; onClose: () => void
             </>
           )}
           {it.cat === 'wall' && <ToggleRow label={L('شفاط مدمج أسفل الوحدة', 'Built-in extractor')} on={!!it.opts.hood} onChange={(hood) => setOpts({ hood })} />}
+          <div className="section-title" style={{ marginTop: 12 }}>{L('إضاءة LED بروفايل', 'LED profiles')}</div>
+          <ToggleRow label={L('داخل الوحدة', 'Inside the unit')} hint={L('تظهر مع الضلف الزجاج أو الأقسام المفتوحة', 'Visible with glass doors or open sections')} on={!!it.opts.ledInside} onChange={(ledInside) => setOpts({ ledInside })} />
+          {it.cat === 'wall' && <ToggleRow label={L('أسفل الوحدة', 'Under the unit')} on={it.opts.ledUnder ?? project.finishes.led} onChange={(ledUnder) => setOpts({ ledUnder })} />}
         </div>
       )}
 
