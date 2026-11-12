@@ -68,9 +68,9 @@ export class SceneManager {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.02;
+    this.renderer.toneMappingExposure = 0.92;
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.shadowMap.autoUpdate = false;
     this.renderer.setClearColor(0x000000, 0);
     const el = this.renderer.domElement;
@@ -87,11 +87,11 @@ export class SceneManager {
     this.envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     pmrem.dispose();
     this.scene.environment = this.envTex;
-    this.scene.environmentIntensity = 0.5;
+    this.scene.environmentIntensity = 0.32;
 
-    this.hemi = new THREE.HemisphereLight(0xffffff, 0xcfc6b8, 0.85);
+    this.hemi = new THREE.HemisphereLight(0xffffff, 0xb9b0a2, 0.55);
     this.scene.add(this.hemi);
-    this.sun = new THREE.DirectionalLight(0xfff3e0, 2.1);
+    this.sun = new THREE.DirectionalLight(0xfff3e0, 2.3);
     this.sun.castShadow = true;
     const ms = lowEnd ? 1024 : 2048;
     this.sun.shadow.mapSize.set(ms, ms);
@@ -99,7 +99,7 @@ export class SceneManager {
     this.sun.shadow.normalBias = 0.025;
     this.scene.add(this.sun);
     this.scene.add(this.sun.target);
-    this.fill = new THREE.PointLight(0xfff8ee, 6, 0, 2);
+    this.fill = new THREE.PointLight(0xfff8ee, 2, 0, 2);
     this.scene.add(this.fill);
 
     this.world.add(this.roomGroup, this.itemsGroup);
@@ -420,8 +420,8 @@ export class SceneManager {
     const cz = b.cy * CM;
     const r = (Math.max(b.w, b.h) * CM) / 2 + 1.2;
     const k = fin.brightness;
-    this.hemi.intensity = 0.85 * k;
-    this.sun.intensity = 2.1 * k;
+    this.hemi.intensity = 0.55 * k;
+    this.sun.intensity = 2.3 * k;
     this.sun.position.set(cx + r * 0.55, H * CM + 3.2, cz + r * 0.8);
     this.sun.target.position.set(cx, 0.4, cz);
     const sc = this.sun.shadow.camera;
@@ -432,7 +432,7 @@ export class SceneManager {
     sc.near = 0.5;
     sc.far = H * CM + r * 3 + 6;
     sc.updateProjectionMatrix();
-    this.fill.intensity = 5 * k;
+    this.fill.intensity = 2 * k;
     this.fill.position.set(cx, H * CM - 0.25, cz);
   }
 
@@ -505,18 +505,43 @@ export class SceneManager {
     return walls[best];
   }
 
+  /** Direction (plan coordinates) from the room centre towards its open side, i.e. away from the cabinets. */
+  private openSide(): { x: number; y: number } {
+    const p = this.project!;
+    const b = bounds(p.room.points);
+    let sx = 0;
+    let sy = 0;
+    let sw = 0;
+    for (const it of p.items) {
+      sx += it.x * it.w;
+      sy += it.y * it.w;
+      sw += it.w;
+    }
+    if (sw > 0) {
+      const vx = b.cx - sx / sw;
+      const vy = b.cy - sy / sw;
+      const l = Math.hypot(vx, vy);
+      if (l > Math.min(b.w, b.h) * 0.06) return { x: vx / l, y: vy / l };
+    }
+    const w = this.mainWall();
+    return { x: w.n.x, y: w.n.y };
+  }
+
   fitCamera() {
     if (!this.project) return;
     this.fitted = true;
     const b = bounds(this.project.room.points);
     const c = this.roomCenter();
-    const size = Math.max(b.w, b.h, this.project.room.height) * CM;
-    const w = this.mainWall();
-    // look at the main wall from the room side, turned a little for a 3/4 view
-    const ang = Math.atan2(w.n.y, w.n.x) + 0.5;
-    const dir = new THREE.Vector3(Math.cos(ang), 0.62, Math.sin(ang)).normalize();
+    const H = this.project.room.height * CM;
+    const radius = Math.hypot(b.w * CM, b.h * CM, H) / 2;
+    // stand on the open side of the kitchen, turned a little for a 3/4 view
+    const open = this.openSide();
+    const ang = Math.atan2(open.y, open.x) + 0.42;
+    const dir = new THREE.Vector3(Math.cos(ang), 0.58, Math.sin(ang)).normalize();
     const aspect = this.camera.aspect || 1;
-    const dist = size * (aspect < 1 ? 2.25 : 1.55) + 1;
+    const fovV = (this.camera.fov * Math.PI) / 180;
+    const fovH = 2 * Math.atan(Math.tan(fovV / 2) * aspect);
+    const dist = (radius / Math.sin(Math.min(fovV, fovH) / 2)) * (aspect < 1 ? 0.86 : 0.98);
     this.camera.position.copy(c).addScaledVector(dir, dist);
     this.controls.target.copy(c);
     this.controls.update();
@@ -792,6 +817,23 @@ export function renderProjectImage(p: Project, w = 1600, h = 1000, preset: ViewP
     sm.setProject(p, null);
     if (preset !== 'iso') sm.setView(preset);
     return sm.snapshot(w, h, 0.9);
+  } finally {
+    sm.dispose();
+    holder.remove();
+  }
+}
+
+/** Export a project as a 3D file without needing the 3D tab to be open. */
+export async function exportProject3D(p: Project, format: 'glb' | 'obj'): Promise<Blob> {
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:fixed;left:-99999px;top:0;width:640px;height:480px;';
+  document.body.appendChild(holder);
+  const sm = new SceneManager(holder, true);
+  try {
+    sm.setSize(640, 480);
+    sm.setProject(p, null);
+    if (format === 'glb') return new Blob([await sm.exportGLB()], { type: 'model/gltf-binary' });
+    return new Blob([sm.exportOBJ()], { type: 'text/plain' });
   } finally {
     sm.dispose();
     holder.remove();

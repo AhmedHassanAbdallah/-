@@ -718,7 +718,7 @@ p {
   overflow: hidden;
   touch-action: none;
 }
-.plan svg {
+.plan > svg {
   position: absolute;
   inset: 0;
   width: 100%;

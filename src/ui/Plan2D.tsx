@@ -4,15 +4,12 @@ import { fmtCm, getLang, L } from '../i18n';
 import { tagItems } from '../lib/bom';
 import { itemName } from '../lib/catalog';
 import {
-  add,
   bounds,
   clamp,
   dot,
   findProblems,
   getWalls,
   itemWall,
-  mul,
-  round1,
   signedArea,
   snapItem,
   sub,
@@ -103,8 +100,9 @@ export function Plan2D() {
     const el = holder.current;
     const w = el?.clientWidth ?? size.w;
     const h = el?.clientHeight ?? size.h;
-    const s = Math.max(0.05, Math.min((w - pad * 2) / Math.max(b.w, 1), (h - pad * 2 - 60) / Math.max(b.h, 1)));
-    setView({ s, tx: w / 2 - b.cx * s, ty: h / 2 - b.cy * s - 8 });
+    // leave room for the floating toolbars at the top and bottom
+    const s = Math.max(0.05, Math.min((w - pad * 2) / Math.max(b.w, 1), (h - pad * 2 - 84) / Math.max(b.h, 1)));
+    setView({ s, tx: w / 2 - b.cx * s, ty: h / 2 - b.cy * s - 14 });
   }, [room.points, size.w, size.h]);
 
   useEffect(() => {
@@ -449,29 +447,27 @@ export function Plan2D() {
   };
 
   const labelFor = (it: Item) => {
-    const c = toScreen({ x: it.x, y: it.y });
     const sw = it.w * view.s;
     const sd = it.d * view.s;
-    const minSide = Math.min(sw, sd);
-    if (minSide < 15) return null;
+    if (Math.min(sw, sd) < 13) return null;
     const upper = it.cat === 'wall' || it.elev >= 100;
-    const vertical = Math.abs(Math.sin((it.rot * Math.PI) / 180)) > 0.7;
-    const spanAlong = vertical ? sd : sw;
-    const tag = tags.get(it.id) ?? '';
-    const showW = Math.max(sw, sd) >= 34 && minSide >= 26;
-    // wall units sit above base units: nudge their labels towards the wall so both stay readable
     const r = (it.rot * Math.PI) / 180;
-    const shift = upper ? Math.min(sd * 0.0, 0) : 0;
-    const ox = -Math.sin(r) * shift;
-    const oy = Math.cos(r) * shift;
-    void spanAlong;
+    const f = { x: -Math.sin(r), y: Math.cos(r) };
+    // wall units hang over floor units: push the two labels apart so both stay readable
+    const stacked = upper ? floorItems.some((o) => Math.hypot(o.x - it.x, o.y - it.y) < 45) : upperItems.some((o) => Math.hypot(o.x - it.x, o.y - it.y) < 45);
+    const shift = !stacked ? 0 : upper ? -it.d / 2 + 8 : it.d / 2 - 13;
+    const c = toScreen({ x: it.x + f.x * shift, y: it.y + f.y * shift });
+    const tag = tags.get(it.id) ?? '';
+    const room = (stacked ? (upper ? 16 : 26) : Math.min(sw, sd)) * (stacked ? view.s : 1);
+    const showW = !upper && sw >= 30 && room >= 22;
+    const size = Math.max(8, Math.min(11, Math.min(sw, sd) * 0.42));
     return (
-      <g key={'l' + it.id} transform={`translate(${c.x + ox} ${c.y + oy})`} opacity={mode === 'room' ? 0.4 : 1}>
-        <text textAnchor="middle" y={showW ? -1 : 4} fontSize={11} fontWeight={800} fill={upper ? '#2d6491' : '#3a3324'} style={{ direction: 'ltr' }}>
+      <g key={'l' + it.id} transform={`translate(${c.x} ${c.y})`} opacity={mode === 'room' ? 0.4 : 1}>
+        <text textAnchor="middle" y={showW ? -1 : size * 0.36} fontSize={size} fontWeight={800} fill={upper ? '#2d6491' : '#3a3324'} style={{ direction: 'ltr' }}>
           {tag}
         </text>
         {showW && (
-          <text textAnchor="middle" y={11} fontSize={9.5} fontWeight={600} fill={upper ? '#2d6491' : '#6b5f45'} style={{ direction: 'ltr' }}>
+          <text textAnchor="middle" y={size - 1} fontSize={size - 1.5} fontWeight={600} fill="#6b5f45" style={{ direction: 'ltr' }}>
             {fmtCm(it.w)}
           </text>
         )}
@@ -775,7 +771,3 @@ export function Plan2D() {
   );
 }
 
-// helpers kept for tree-shaking friendliness
-void add;
-void mul;
-void round1;

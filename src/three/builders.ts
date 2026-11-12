@@ -52,14 +52,14 @@ export class MatLib {
   handle(id: string): THREE.Material {
     return this.get('handle:' + id, () => {
       const f = handleColor(id);
-      return new THREE.MeshStandardMaterial({ color: f.color, roughness: f.rough, metalness: 0.95 });
+      return new THREE.MeshStandardMaterial({ color: f.color, roughness: f.rough, metalness: 0.85, envMapIntensity: 3 });
     });
   }
   plinth(fin: Finishes): THREE.Material {
     if (fin.plinth === 'pl-door') return this.door(fin.baseDoor);
     return this.get('plinth:' + fin.plinth, () => {
       const f = PLINTHS.find((p) => p.id === fin.plinth) ?? PLINTHS[0];
-      return new THREE.MeshStandardMaterial({ color: f.color, roughness: 0.4, metalness: f.id === 'pl-steel' ? 0.85 : 0.1 });
+      return new THREE.MeshStandardMaterial({ color: f.color, roughness: 0.4, metalness: f.id === 'pl-steel' ? 0.7 : 0.1, envMapIntensity: f.id === 'pl-steel' ? 2.6 : 1 });
     });
   }
   floor(id: string): THREE.Material {
@@ -86,13 +86,13 @@ export class MatLib {
     return this.get('led:' + c, () => new THREE.MeshBasicMaterial({ color: c, toneMapped: false }));
   }
   get steel() {
-    return this.get('steel', () => new THREE.MeshStandardMaterial({ color: '#c6c9cd', roughness: 0.34, metalness: 0.92 }));
+    return this.get('steel', () => new THREE.MeshStandardMaterial({ color: '#d2d5d9', roughness: 0.36, metalness: 0.7, envMapIntensity: 2.8 }));
   }
   get darkSteel() {
-    return this.get('darkSteel', () => new THREE.MeshStandardMaterial({ color: '#34373b', roughness: 0.42, metalness: 0.8 }));
+    return this.get('darkSteel', () => new THREE.MeshStandardMaterial({ color: '#4a4e53', roughness: 0.45, metalness: 0.55, envMapIntensity: 2.2 }));
   }
   get blackGlass() {
-    return this.get('blackGlass', () => new THREE.MeshPhysicalMaterial({ color: '#08090b', roughness: 0.06, metalness: 0.2, clearcoat: 1, clearcoatRoughness: 0.03 }));
+    return this.get('blackGlass', () => new THREE.MeshPhysicalMaterial({ color: '#0d0f12', roughness: 0.08, metalness: 0.1, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 2.2 }));
   }
   get glass() {
     return this.get(

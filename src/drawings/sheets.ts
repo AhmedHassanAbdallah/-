@@ -3,7 +3,7 @@ import type { Bom } from '../lib/bom';
 import { CAT_NAMES, itemName, SECTION_NAMES } from '../lib/catalog';
 import { bounds, dot, getWalls, itemAxes, itemCorners, itemWall, sub, wallPoint, type Wall } from '../lib/geometry';
 import { cabinetLayout, itemFinishId } from '../lib/layout';
-import { countertopFinish, doorFinish, DOOR_TYPES, HANDLE_TYPES } from '../lib/materials';
+import { countertopFinish, doorFinish, DOOR_TYPES, handleColor, HANDLE_TYPES } from '../lib/materials';
 import type { Part } from '../lib/parts';
 import type { Item, Project } from '../types';
 import { Kit, PAGE_H, PAGE_W, pickScale } from './kit';
@@ -497,7 +497,7 @@ function drawElevation(k: Kit, p: Project, bom: Bom, w: Wall): number {
     levels.push(it.elev + it.h);
     if (it.opts.countertop) levels.push(it.elev + it.h + ct);
   }
-  const lv = uniq(levels, 1.5).filter((v) => v <= H + 0.1);
+  const lv = uniq(levels, 2.6).filter((v) => v <= H + 0.1);
   for (let i = 0; i < lv.length - 1; i++) k.dim(X(0), Y(lv[i + 1]), X(0), Y(lv[i]), 5.5, fmtCm(lv[i + 1] - lv[i]), { size: 2.2 });
   k.dim(X(w.len), Y(0), X(w.len), Y(H), 6, fmtCm(H), { size: 2.7, color: INK });
   return n;
@@ -647,7 +647,7 @@ export function buildSheets(p: Project, bom: Bom, cover: CanvasImageSource | nul
         { t: L('ضلف الوحدات العلوية', 'Wall fronts'), v: dl(fin.wallDoor), c: doorFinish(fin.wallDoor).color },
         { t: L('ضلف الأعمدة', 'Tall fronts'), v: dl(fin.tallDoor), c: doorFinish(fin.tallDoor).color },
         { t: L('سطح العمل', 'Countertop'), v: `${LT(ctF.name)} – ${fmtCm(fin.countertopT)} cm`, c: ctF.color },
-        { t: L('المقابض', 'Handles'), v: LT(HANDLE_TYPES.find((h) => h.id === fin.handle)!.name), c: '#c4c7ca' },
+        { t: L('المقابض', 'Handles'), v: `${LT(HANDLE_TYPES.find((h) => h.id === fin.handle)!.name)} – ${LT(handleColor(fin.handleColor).name)}`, c: handleColor(fin.handleColor).color },
       ];
       const cw = (CX1 - CX0 - 4 * 4) / 5;
       cards.forEach((c, i) => {

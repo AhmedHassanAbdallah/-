@@ -3,8 +3,32 @@ import { X } from 'lucide-react';
 import { L } from '../i18n';
 import { useStore } from '../store';
 
+// ---------- Back-button stack (Android hardware back closes the top-most layer) ----------
+const backStack: { current: () => void }[] = [];
+
+/** Close the top-most open layer. Returns false when nothing was open. */
+export function handleBack(): boolean {
+  const top = backStack[backStack.length - 1];
+  if (!top) return false;
+  top.current();
+  return true;
+}
+
+export function useBackClose(onClose: () => void) {
+  const ref = useRef(onClose);
+  ref.current = onClose;
+  useEffect(() => {
+    backStack.push(ref);
+    return () => {
+      const i = backStack.indexOf(ref);
+      if (i >= 0) backStack.splice(i, 1);
+    };
+  }, []);
+}
+
 // ---------- Sheet ----------
 export function Sheet(props: { title: ReactNode; onClose: () => void; children: ReactNode; half?: boolean; clear?: boolean; actions?: ReactNode }) {
+  useBackClose(props.onClose);
   return (
     <div className={'overlay' + (props.clear ? ' clear' : '')} onPointerDown={(e) => e.target === e.currentTarget && props.onClose()}>
       <div className={'sheet' + (props.half ? ' half' : '')} role="dialog">

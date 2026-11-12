@@ -209,7 +209,8 @@ export function computeBom(p: Project): Bom {
   const pr = p.prices;
   const lines: CostLine[] = [];
   const line = (key: string, group: CostLine['group'], label: LText, qty: number, unit: LText, unitPrice: number) => {
-    if (qty <= 0) return;
+    // nothing to show for absent items or items the user priced at zero
+    if (qty <= 0 || unitPrice <= 0) return;
     lines.push({ key, group, label, qty, unit, unitPrice, total: qty * unitPrice });
   };
   line('carcass', 'boards', { ar: 'ألواح الهيكل', en: 'Carcass boards' }, sheets.carcass + sheets.drawer, U.sheet, pr.carcassSheet);

@@ -5,7 +5,7 @@ import { useStore } from '../store';
 import type { Opening, Room, Utility, UtilityType } from '../types';
 import { NumField, Seg, Sheet } from './components';
 
-export type RoomSel = { kind: 'opening' | 'utility' | 'column'; id: string } | { kind: 'vertex' | 'wall'; index: number };
+export type RoomSel = { kind: 'opening'; id: string } | { kind: 'utility'; id: string } | { kind: 'column'; id: string } | { kind: 'vertex'; index: number } | { kind: 'wall'; index: number };
 
 export const UTIL_META: Record<UtilityType, { ar: string; en: string; color: string; letter: string; height: number }> = {
   water: { ar: 'مصدر مياه', en: 'Water supply', color: '#2f80ed', letter: 'W', height: 55 },
